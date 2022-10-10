@@ -21,6 +21,7 @@ require(reticulate)
 # Define vectors used in entire script.
 rm(list = ls()) # Clean environment
 load(file = "./Environments/descriptive.RData") # Load environment
+dir.create(path = paste0("./Output/Model_", format(Sys.time(), "%d-%m-%Y_%H.%M"), "/")) # Create directory to store results
 
 # Select data ------------------------------------------------------------
 analysis_data <- # Put all data to analyze in a list
@@ -184,7 +185,6 @@ for (my_analysis_data in analysis_data) {
   ## Analysis using lightGBM algorithm
 
   ### Shape data ------------------------------------------------------------
-  # my_analysis_data <- read.csv(file = "./Data/test.csv")
   light_gbm_split_indexes <- # Separate data in two using p
     createDataPartition(y = my_analysis_data$eih, p = 0.70, list = FALSE)
   light_gbm_train_data <-
@@ -229,21 +229,22 @@ for (my_analysis_data in analysis_data) {
     )
 
   ### Configure -------------------------------------------------------------
-  tmp_data <- r_to_py(select(my_analysis_data, -c("eih")))
-  tmp_labels <- r_to_py(select(my_analysis_data, c("eih")))
   source_python("./Scripts/tune.py")
 
-  light_gbm_params <- c(list(
-    # Define parameters for lightGBM training
-    objective = 'multiclass',
-    boosting = "dart",
-    is_unbalenced = TRUE,
-    metric = "multi_error",
-    num_class = 2,
-    max_depth = 6,
-    min_data = 1,
-    learning_rate = 0.01
-  ), study$best_params)
+  light_gbm_params <- c(
+    list(
+      # Define parameters for lightGBM training
+      objective = 'binary',
+      boosting = "dart",
+      # is_unbalenced = TRUE,
+      metric = "binary_logloss",
+      # num_class = 2,
+      # max_depth = 6,
+      # min_data = 1,
+      # learning_rate = 0.01
+    ),
+    study$best_params
+  )
 
   light_gbm_valids <-
     list(test = light_gbm_dtest) # Create a valid (reference) dataset
@@ -284,10 +285,16 @@ for (my_analysis_data in analysis_data) {
   )
   rm(list = setdiff(
     x = ls(),
-    y = ls(pattern = "my_data|my_results|.*model_results|excluded_variables|my_analysis_data|my_counter|my_models.*|analysis_data")
+    y = ls(pattern = "my_data|my_results|.*model_results|excluded_variables|my_analysis_data|my_counter|my_models.*|analysis_data|study")
   ))
 
   # Data structure ----------------------------------------------------------
+  saveRDS(object = study$best_params,
+          file = paste0("Best_params", my_counter))
+  saveRDS(object = light_gbm_model,
+          file = paste0("LightGBM_model", my_counter))
+  saveRDS(object = study,
+          file = paste0("Optune_study", my_counter))
   assign(
     paste0("my_models_", names(analysis_data[my_counter])),
     sapply(
