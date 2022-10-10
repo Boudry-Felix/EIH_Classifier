@@ -202,6 +202,4 @@ rm(list = setdiff(x = ls(), y = ls(pattern = "my_data")), my_data_frame)
 
 # Export data -------------------------------------------------------------
 # Save environment to avoid recomputing
-write.csv(my_data$summary, "./Output/test_data.csv")
-write.csv(my_data$labels, "./Output/test_target.csv")
 save.image(file = "./Environments/compute.RData")

@@ -31,7 +31,8 @@ studies_list <- dir_info(path = "Data", recurse = FALSE) %>%
 studies_list <- studies_list$path
 
 for (my_study in studies_list) {
-  information_files_list <- dir_info(path = my_study, recurse = TRUE) %>%
+  information_files_list <-
+    dir_info(path = my_study, recurse = TRUE) %>%
     filter(type == "file")
   information_files_list <- information_files_list$path
   information_files_list <-
@@ -55,7 +56,7 @@ for (my_study in studies_list) {
     )) %>%
     clean_names()
   data_infos <- subject_informations %>% # Merge informations
-    append(x = ., values = test_informations[1, ]) %>%
+    append(x = ., values = test_informations[1,]) %>%
     as.data.table()
   files_list <- dir_info(my_study, recurse = TRUE) %>%
     filter(type == "file")
@@ -110,5 +111,4 @@ my_data <- lst(my_data, my_data_infos) %>%
 rm(my_data_infos)
 
 # Export data -------------------------------------------------------------
-write.csv(my_data$infos, "./Output/my_data_infos.csv")
 save.image(file = "./Environments/import.RData")

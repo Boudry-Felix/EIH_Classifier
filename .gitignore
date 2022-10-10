@@ -27,8 +27,8 @@ vignettes/*.pdf
 # R Environment Variables
 .Renviron
 # Personnal add
+/Data/*
 /Output/*
-bibliography.bib
 /Environments/*
 *.html
 *.pdf
