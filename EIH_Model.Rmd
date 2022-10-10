@@ -1,0 +1,92 @@
+---
+title: "EIH Model"
+author: "Félix Boudry"
+date: "`r Sys.Date()`"
+documentclass: article
+classoption: oneside
+lang: en-US
+output:
+  html_document:
+    toc: yes
+    number_section: yes
+    fig_caption: yes
+  word_document:
+    toc: yes
+    number_sections: 4
+    fig_caption: yes
+  pdf_document:
+    toc: yes
+    toc_depth: 4
+    number_sections: yes
+    fig_caption: yes
+    df_print: kable
+    latex_engine: xelatex
+bibliography: EIH_modeling.bib
+---
+
+```{r Setup, include=FALSE, echo=FALSE}
+knitr::opts_chunk$set(
+	echo = FALSE,
+	error = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+
+# Import libraries
+library(ImportR)
+library(readxl)
+library(janitor)
+library(data.table)
+library(stringr)
+library(tibble)
+library(dplyr)
+library(tidyr)
+library(superml)
+library(ggplot2)
+library(factoextra)
+library(clusplus)
+library(caret)
+library(gbm)
+library(lightgbm)
+library(fs)
+library(superml)
+library(reticulate)
+library(dbscan)
+library(fpc)
+library(FCPS)
+```
+
+```{r Scripts, warning=FALSE, paged.print=TRUE, echo=FALSE}
+# Sourcing scripts
+source("./Scripts/Import.R")
+source("./Scripts/Compute.R")
+source("./Scripts/Descriptive.R")
+source("./Scripts/Predictive.R")
+# Needed configuration
+# - Cluster number has to be specified in the "Descriptive.R" script
+# - eps and MinPts have to be specified for DBScan clustering
+```
+
+```{r}
+load(file = "./Environments/predictive.RData")
+my_results$my_models_absolute$gbm_caret_model_results$gbm_caret_confusion$overall
+my_results$my_models_absolute$gbm_model_results$gbm_confusion$overall
+my_results$my_models_absolute$light_gbm_model_results$light_gbm_confusion$overall
+my_results$my_models_relative$gbm_caret_model_results$gbm_caret_confusion$overall
+my_results$my_models_relative$gbm_model_results$gbm_confusion$overall
+my_results$my_models_relative$light_gbm_model_results$light_gbm_confusion$overall
+```
+
+
+# Introduction
+
+It is well known that endurance performances are limites by physiological factors among which the cardio-respiratory is one of the most importants @(Amann & Calbet, 2008; Bassett, 2000). This system can be limiting through different ways including the limitations of the cardiac outpu (Qc), the oxygen diffusion or the pulmonary perfusion. Those limitations can be enhanced by physical training an dphysiological adaptations to exercise. Thus with training we can observe an increased cardiac output, pulmonary perfusion or oxygene diffusion through an increased hemoglobin concentration.
+
+It's also well known that the environment can impact the oxygen pressures and thus the inspired volume. This limitation is also present during experimentation, like simulated altitude, during which the inspired fraction of oxygen is diminished.
+
+If the cardiac system is one of the most known limiting, the pulmonary system can also participated in the observed limitations.
+This system is complicated and the pulmonary anatomy is composed by several "section". @raberinHypoxemieInduiteExercice2019
+
+# References
+
+<div id="refs"></div>
