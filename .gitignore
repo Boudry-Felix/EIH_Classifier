@@ -30,6 +30,7 @@ vignettes/*.pdf
 /Data/*
 /Output/*
 /Environments/*
+/Params/*
 *.html
 *.pdf
 *.docx

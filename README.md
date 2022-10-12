@@ -1,9 +1,3 @@
----
-output: 
-  html_document: 
-    toc: yes
----
-
 # EIH Modeling
 
 ## Purpose and explanations

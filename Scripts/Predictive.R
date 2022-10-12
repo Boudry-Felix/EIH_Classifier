@@ -21,7 +21,8 @@ require(reticulate)
 # Define vectors used in entire script.
 rm(list = ls()) # Clean environment
 load(file = "./Environments/descriptive.RData") # Load environment
-dir.create(path = paste0("./Output/Model_", format(Sys.time(), "%d-%m-%Y_%H.%M"), "/")) # Create directory to store results
+my_date <- format(Sys.time(), "%d-%m-%Y_%H.%M")
+dir.create(path = paste0("./Output/Model_", my_date, "/")) # Create directory to store results
 
 # Select data ------------------------------------------------------------
 analysis_data <- # Put all data to analyze in a list
@@ -45,9 +46,9 @@ for (my_analysis_data in analysis_data) {
   gbm_split_indexes <- # Separate data in two using p
     createDataPartition(y = my_analysis_data$eih, p = 0.65, list = FALSE)
   gbm_train_data <- # Create a train data set
-    my_analysis_data[gbm_split_indexes, ]
+    my_analysis_data[gbm_split_indexes,]
   gbm_test_data <- # Create a test data set
-    my_analysis_data[-gbm_split_indexes, ]
+    my_analysis_data[-gbm_split_indexes,]
 
   gbm_train_data$eih <- # Factorize EIH column
     as.numeric(x = as.factor(x = gbm_train_data$eih))
@@ -114,7 +115,7 @@ for (my_analysis_data in analysis_data) {
   )
   rm(list = setdiff(
     x = ls(),
-    y = ls(pattern = "my_data|my_results|gbm_model_results|excluded_variables|my_analysis_data|my_counter|my_models.*|analysis_data")
+    y = ls(pattern = "my_data|my_results|gbm_model_results|excluded_variables|my_analysis_data|my_counter|my_models.*|analysis_data|my_date")
   ))
 
   ## GBM (caret) analysis ---------------------------------------------------
@@ -123,9 +124,9 @@ for (my_analysis_data in analysis_data) {
   gbm_caret_split_indexes <- # Separate data in two using p
     createDataPartition(y = my_analysis_data$eih, p = 0.65, list = FALSE)
   gbm_caret_train_data <- # Create a train data set
-    my_analysis_data[gbm_caret_split_indexes, ]
+    my_analysis_data[gbm_caret_split_indexes,]
   gbm_caret_test_data <- # Create a test data set
-    my_analysis_data[-gbm_caret_split_indexes, ]
+    my_analysis_data[-gbm_caret_split_indexes,]
 
   gbm_caret_train_data$eih <- # Factorize EIH column
     as.numeric(x = as.factor(x = gbm_caret_train_data$eih))
@@ -178,7 +179,7 @@ for (my_analysis_data in analysis_data) {
 
   rm(list = setdiff(
     x = ls(),
-    y = ls(pattern = "my_data|my_results|.*model_results|excluded_variables|my_analysis_data|my_counter|my_models.*|analysis_data")
+    y = ls(pattern = "my_data|my_results|.*model_results|excluded_variables|my_analysis_data|my_counter|my_models.*|analysis_data|my_date")
   ))
 
   ## Light GBM analysis -----------------------------------------------------
@@ -189,10 +190,10 @@ for (my_analysis_data in analysis_data) {
     createDataPartition(y = my_analysis_data$eih, p = 0.70, list = FALSE)
   light_gbm_train_data <-
     # Create a train data set and remove unused data
-    my_analysis_data[light_gbm_split_indexes, ]
+    my_analysis_data[light_gbm_split_indexes,]
   light_gbm_test_data <-
     # Create a test data set and remove unused data
-    my_analysis_data[-light_gbm_split_indexes, ]
+    my_analysis_data[-light_gbm_split_indexes,]
 
   light_gbm_train_data_label <-
     light_gbm_train_data %>% # Create training labels
@@ -229,19 +230,20 @@ for (my_analysis_data in analysis_data) {
     )
 
   ### Configure -------------------------------------------------------------
-  source_python("./Scripts/tune.py")
+  my_config <- NULL
+  # my_config <- paste0("Params/Optune_study", my_counter, ".rds")
+  if (is.null(my_config)) {
+    source_python("./Scripts/tune.py")
+  } else {
+    readRDS(file = my_config)
+  }
 
   light_gbm_params <- c(
     list(
       # Define parameters for lightGBM training
       objective = 'binary',
       boosting = "dart",
-      # is_unbalenced = TRUE,
-      metric = "binary_logloss",
-      # num_class = 2,
-      # max_depth = 6,
-      # min_data = 1,
-      # learning_rate = 0.01
+      metric = "binary_logloss"
     ),
     study$best_params
   )
@@ -254,7 +256,7 @@ for (my_analysis_data in analysis_data) {
     # Train model
     params = light_gbm_params,
     data = light_gbm_dtrain,
-    nrounds = 2100L,
+    nrounds = 5000L,
     valids = light_gbm_valids
   )
 
@@ -262,7 +264,7 @@ for (my_analysis_data in analysis_data) {
   light_gbm_test_data <- as.matrix(x = light_gbm_test_data)
   light_gbm_pred <-
     predict(object = light_gbm_model, light_gbm_test_data, reshape = TRUE)
-  light_gbm_pred_y = max.col(m = light_gbm_pred) - 1
+  light_gbm_pred_y = ifelse(light_gbm_pred > 0.5, 1, 0)
 
   light_gbm_confusion <-
     confusionMatrix(as.factor(x = light_gbm_test_data_label$eih),
@@ -285,16 +287,43 @@ for (my_analysis_data in analysis_data) {
   )
   rm(list = setdiff(
     x = ls(),
-    y = ls(pattern = "my_data|my_results|.*model_results|excluded_variables|my_analysis_data|my_counter|my_models.*|analysis_data|study")
+    y = ls(pattern = "my_data|my_results|.*model_results|excluded_variables|my_analysis_data|my_counter|my_models.*|analysis_data|study|my_date|my_config")
   ))
 
   # Data structure ----------------------------------------------------------
-  saveRDS(object = study$best_params,
-          file = paste0("Best_params", my_counter))
-  saveRDS(object = light_gbm_model,
-          file = paste0("LightGBM_model", my_counter))
-  saveRDS(object = study,
-          file = paste0("Optune_study", my_counter))
+  if (is.null(my_config)) {
+    saveRDS(
+      object = study$best_params,
+      file = paste0(
+        "Output/Model_",
+        my_date,
+        "/Best_params",
+        my_counter,
+        ".rds"
+      )
+    )
+    saveRDS(
+      object = light_gbm_model_results,
+      file = paste0(
+        "Output/Model_",
+        my_date,
+        "/LightGBM_model",
+        my_counter,
+        ".rds"
+      )
+    )
+    saveRDS(
+      object = study,
+      file = paste0(
+        "Output/Model_",
+        my_date,
+        "/Optune_study",
+        my_counter,
+        ".rds"
+      )
+    )
+  }
+
   assign(
     paste0("my_models_", names(analysis_data[my_counter])),
     sapply(
@@ -308,7 +337,7 @@ for (my_analysis_data in analysis_data) {
   my_counter <- my_counter + 1
   rm(list = setdiff(
     x = ls(),
-    y = ls(pattern = "my_data|my_results|my_models.*|my_counter|analysis_data")
+    y = ls(pattern = "my_data|my_results|my_models.*|my_counter|analysis_data|my_date")
   ))
 }
 
