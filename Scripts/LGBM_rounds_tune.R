@@ -21,7 +21,6 @@ require(reticulate)
 # Define vectors used in entire script.
 rm(list = ls()) # Clean environment
 load(file = "./Environments/predictive.RData") # Load environment
-my_date <- format(Sys.time(), "%d-%m-%Y_%H.%M")
 
 # Select data ------------------------------------------------------------
 analysis_data <- # Put all data to analyze in a list
@@ -46,10 +45,10 @@ for (my_analysis_data in analysis_data) {
     createDataPartition(y = my_analysis_data$eih, p = 0.70, list = FALSE)
   light_gbm_train_data <-
     # Create a train data set and remove unused data
-    my_analysis_data[light_gbm_split_indexes,]
+    my_analysis_data[light_gbm_split_indexes, ]
   light_gbm_test_data <-
     # Create a test data set and remove unused data
-    my_analysis_data[-light_gbm_split_indexes,]
+    my_analysis_data[-light_gbm_split_indexes, ]
 
   light_gbm_train_data_label <-
     light_gbm_train_data %>% # Create training labels
@@ -87,7 +86,7 @@ for (my_analysis_data in analysis_data) {
 
   ### Configure -------------------------------------------------------------
   my_params <- paste0("Params/Best_params", my_counter, ".rds")
-  readRDS(file = my_params)
+  my_params <- readRDS(file = my_params)
 
   light_gbm_params <- c(list(
     # Define parameters for lightGBM training
@@ -102,7 +101,8 @@ for (my_analysis_data in analysis_data) {
 
   ### Train model -----------------------------------------------------------
   assign(paste0("Results", my_counter),
-         as.data.frame(matrix(ncol = 2)) %>% `colnames<-`(c("rounds", "accuracy")))
+         as.data.frame(x = matrix(ncol = 2)) %>%
+           `colnames<-`(c("rounds", "accuracy")))
   my_rounds <- seq(300, 1500, by = 100)
   for (test_rounds in my_rounds) {
     light_gbm_model <- lgb.train(
@@ -110,7 +110,8 @@ for (my_analysis_data in analysis_data) {
       params = light_gbm_params,
       data = light_gbm_dtrain,
       nrounds = test_rounds,
-      valids = light_gbm_valids
+      valids = light_gbm_valids,
+      verbose = -1
     )
     ### Test model --------------------------------------------------------
     light_gbm_test_data <- as.matrix(x = light_gbm_test_data)
@@ -119,26 +120,29 @@ for (my_analysis_data in analysis_data) {
               light_gbm_test_data,
               reshape = TRUE)
     if (my_counter == 1) {
-      light_gbm_pred_y = ifelse(light_gbm_pred > 0.5, 1, 0)
+      light_gbm_pred_y = ifelse(test = light_gbm_pred > 0.495,
+                                yes = 1,
+                                no = 0)
     } else {
-      light_gbm_pred_y = ifelse(light_gbm_pred > 0.51, 1, 0)
+      light_gbm_pred_y = ifelse(test = light_gbm_pred > 0.5,
+                                yes = 1,
+                                no = 0)
     }
-
-
     light_gbm_confusion <-
       confusionMatrix(as.factor(x = light_gbm_test_data_label$eih),
                       as.factor(x = light_gbm_pred_y))
     ### Save results ---------------------------------------------------------
-    assign(paste0("Results", my_counter), rbind(
-      get(paste0("Results", my_counter)),
-      c(test_rounds, light_gbm_confusion$overall[[1]])
-    ))
+    assign(x = paste0("Results", my_counter),
+           value = rbind(
+             get(x = paste0("Results", my_counter)),
+             c(test_rounds, light_gbm_confusion$overall[[1]])
+           ))
   }
   my_counter <- my_counter + 1
 }
 
 # Remove temporary variables
-rm(list = setdiff(x = ls(), y = ls(pattern = "my_data|my_results|Results.*")))
-
-# Export data -------------------------------------------------------------
-# Save environment to avoid recomputing
+rm(list = setdiff(
+  x = ls(),
+  y = ls(pattern = "my_data|my_results|Results.*")
+))

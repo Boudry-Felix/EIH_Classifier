@@ -14,13 +14,12 @@ output:
     toc: yes
     number_sections: 4
     fig_caption: yes
-  pdf_document:
+  pdf_document: 
     toc: yes
     toc_depth: 4
     number_sections: yes
     fig_caption: yes
     df_print: kable
-    latex_engine: xelatex
 bibliography: EIH_modeling.bib
 ---
 
@@ -33,7 +32,6 @@ knitr::opts_chunk$set(
 )
 
 # Import libraries
-library(ImportR)
 library(readxl)
 library(janitor)
 library(data.table)
@@ -53,17 +51,19 @@ library(reticulate)
 library(dbscan)
 library(fpc)
 library(FCPS)
+library(psych)
+library(kableExtra)
 ```
 
-```{r Scripts, warning=FALSE, paged.print=TRUE, echo=FALSE}
+```{r Scripts, echo=FALSE, warning=FALSE, paged.print=TRUE}
 # Sourcing scripts
-source("./Scripts/Import.R")
-source("./Scripts/Compute.R")
-source("./Scripts/Descriptive.R")
-source("./Scripts/Predictive.R")
-# Needed configuration
+# Some parameters need configuration :
 # - Cluster number has to be specified in the "Descriptive.R" script
 # - eps and MinPts have to be specified for DBScan clustering
+# source("./Scripts/Import.R")
+# source("./Scripts/Compute.R")
+# source("./Scripts/Descriptive.R")
+# source("./Scripts/Predictive.R")
 ```
 
 ```{r}
@@ -74,6 +74,30 @@ my_results$my_models_absolute$light_gbm_model_results$light_gbm_confusion$overal
 my_results$my_models_relative$gbm_caret_model_results$gbm_caret_confusion$overall
 my_results$my_models_relative$gbm_model_results$gbm_confusion$overall
 my_results$my_models_relative$light_gbm_model_results$light_gbm_confusion$overall
+
+antropometricsDescript <-
+  describe(my_data$infos)[c("age", "taille", "poids", "saturation_fin"), c("mean", "sd", "median", "min", "max")]
+trainDescript <-
+  describe(my_data$infos)[c("trainingYears", "trainingVolume"), c("mean", "sd", "median", "min", "max")]
+subjectSports <- table(my_data$inf$sport)
+gbmParam <-
+  t(as.data.frame(my_results$my_models_absolute$light_gbm_model_results$light_gbm_params[c(
+    "boosting",
+    "lambda_l1",
+    "lambda_l2",
+    "num_leaves",
+    "max_depth",
+    "feature_fraction",
+    "bagging_fraction",
+    "bagging_freq",
+    "learning_rate"
+  )]))
+kable(antropometricsDescript, caption = "<center><strong>Données anthropologiques (n = 127)</center></strong>")
+kable(trainDescript, caption = "<center><strong>Données d'entraînement des athlètes (n = 56)</center></strong>")
+kable(subjectSports,
+      col.names = c("Sport", "Freq"),
+      caption = "<center><strong>Sports pratiqués (n = 56)</center></strong>")
+kable(gbmParam, col.names = "Valeur", caption = "<center><strong>Paramètres lightGBM</center></strong>")
 ```
 
 

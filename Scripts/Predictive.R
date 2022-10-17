@@ -113,10 +113,6 @@ for (my_analysis_data in analysis_data) {
     simplify = FALSE,
     USE.NAMES = TRUE
   )
-  rm(list = setdiff(
-    x = ls(),
-    y = ls(pattern = "my_data|my_results|gbm_model_results|excluded_variables|my_analysis_data|my_counter|my_models.*|analysis_data|my_date")
-  ))
 
   ## GBM (caret) analysis ---------------------------------------------------
 
@@ -176,11 +172,6 @@ for (my_analysis_data in analysis_data) {
     simplify = FALSE,
     USE.NAMES = TRUE
   )
-
-  rm(list = setdiff(
-    x = ls(),
-    y = ls(pattern = "my_data|my_results|.*model_results|excluded_variables|my_analysis_data|my_counter|my_models.*|analysis_data|my_date")
-  ))
 
   ## Light GBM analysis -----------------------------------------------------
   ## Analysis using lightGBM algorithm
@@ -286,10 +277,6 @@ for (my_analysis_data in analysis_data) {
     simplify = FALSE,
     USE.NAMES = TRUE
   )
-  rm(list = setdiff(
-    x = ls(),
-    y = ls(pattern = "my_data|my_results|.*model_results|excluded_variables|my_analysis_data|my_counter|my_models.*|analysis_data|study|my_date|my_config")
-  ))
 
   # Data structure ----------------------------------------------------------
   if (is.null(my_config)) {

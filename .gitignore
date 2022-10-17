@@ -31,7 +31,10 @@ vignettes/*.pdf
 /Output/*
 /Environments/*
 /Params/*
+/Images/*
 *.html
 *.pdf
 *.docx
 *.bib
+*.log
+*.tex
