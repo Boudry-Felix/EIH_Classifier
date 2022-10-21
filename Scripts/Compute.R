@@ -38,7 +38,7 @@ my_data$all <-
 
 # Remove outliers ---------------------------------------------------------
 remove_outliers <-
-  FALSE # Chose to keep or remove outliers, may loose accuracy
+  TRUE # Chose to keep or remove outliers, may loose accuracy
 if (remove_outliers) {
   my_data$all <-
     lapply(
@@ -112,7 +112,7 @@ for (my_data_frame in my_data$all) {
       ),
       na.rm = TRUE
     ))
-  tmp_summary["sujet"] <- # Add "sujet" column with dataframe name
+  tmp_summary["subject"] <- # Add "sujet" column with dataframe name
     sub(pattern = "\\.xlsx",
         # Remove extension
         replacement = "",
@@ -126,9 +126,9 @@ for (my_data_frame in my_data$all) {
 ## Set unused features
 excluded_variables <- # Variables to remove from training data set
   c(
-    "saturation_repos",
-    "saturation_fin",
-    "delta_saturation",
+    "saturation_rest",
+    "saturation_end",
+    "saturation_delta",
     "study_name",
     "test",
     "data_type",
@@ -150,16 +150,16 @@ my_summary <- # Add informations to summary
   merge(
     x = my_summary,
     y = select(.data = my_data$infos, -excluded_variables),
-    by = "sujet",
+    by = "subject",
     all = TRUE
   )
 ## Put labels in separated data frames
 my_labels <-
-  select(.data = my_summary, c("sujet", "eih", "eih_severity"))
+  select(.data = my_summary, c("subject", "eih", "eih_severity"))
 my_summary <- select(.data = my_summary, -c("eih", "eih_severity"))
 ## Labeling categorical variables
-my_label_env_sex <- LabelEncoder.fit(my_summary$sexe)
-my_summary$sexe <- transform(my_label_env_sex, my_summary$sexe)
+my_label_env_sex <- LabelEncoder.fit(my_summary$sex)
+my_summary$sex <- transform(my_label_env_sex, my_summary$sex)
 my_label_env_sport <- LabelEncoder.fit(my_summary$sport)
 my_summary$sport <- transform(my_label_env_sport, my_summary$sport)
 

@@ -78,7 +78,7 @@ my_results$my_models_relative$light_gbm_model_results$light_gbm_confusion$overal
 antropometricsDescript <-
   describe(my_data$infos)[c("age", "taille", "poids", "saturation_fin"), c("mean", "sd", "median", "min", "max")]
 trainDescript <-
-  describe(my_data$infos)[c("trainingYears", "trainingVolume"), c("mean", "sd", "median", "min", "max")]
+  describe(my_data$infos)[c("volume_entrainement", "annees_entrainement"), c("mean", "sd", "median", "min", "max")]
 subjectSports <- table(my_data$inf$sport)
 gbmParam <-
   t(as.data.frame(my_results$my_models_absolute$light_gbm_model_results$light_gbm_params[c(
@@ -93,10 +93,10 @@ gbmParam <-
     "learning_rate"
   )]))
 kable(antropometricsDescript, caption = "<center><strong>Données anthropologiques (n = 127)</center></strong>")
-kable(trainDescript, caption = "<center><strong>Données d'entraînement des athlètes (n = 56)</center></strong>")
+kable(trainDescript, caption = "<center><strong>Données d'entraînement des athlètes (n = 127)</center></strong>")
 kable(subjectSports,
       col.names = c("Sport", "Freq"),
-      caption = "<center><strong>Sports pratiqués (n = 56)</center></strong>")
+      caption = "<center><strong>Sports pratiqués (n = 127)</center></strong>")
 kable(gbmParam, col.names = "Valeur", caption = "<center><strong>Paramètres lightGBM</center></strong>")
 ```
 

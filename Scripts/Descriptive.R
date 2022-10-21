@@ -28,10 +28,10 @@ load(file = "./Environments/compute.RData") # Load environment
 # Descriptive values ------------------------------------------------------
 my_measures <- # List descriptive values
   c("age",
-    "taille",
-    "poids",
-    "annees_entrainement",
-    "volume_entrainement")
+    "height",
+    "weight",
+    "train_years",
+    "train_volume")
 
 antrop_data <- # Summarise descriptive values
   dplyr::summarise(my_data$infos, across(
@@ -40,8 +40,9 @@ antrop_data <- # Summarise descriptive values
     .fns = list(mean = mean, sd = sd),
     # Apply functions
     na.rm = TRUE
-  )) %>% cbind(saturation_mean = mean(x = my_data$infos$saturation_fin, na.rm = TRUE)) %>%
-  cbind(saturation_sd = sd(x = my_data$infos$saturation_fin, na.rm = TRUE))
+  )) %>% cbind(saturation_mean = mean(x = my_data$infos$saturation_end, na.rm = TRUE)) %>%
+  cbind(saturation_sd = sd(x = my_data$infos$saturation_end, na.rm = TRUE)) %>%
+  round()
 
 # Clustering --------------------------------------------------------------
 # Prepare data for clustering
@@ -129,7 +130,8 @@ for (data_to_analyze in my_analysis_data) {
   names(x = data_hierar_clust) <- ls(pattern = "hierar_clust_")
 
   ### DBSCAN ----------------------------------------------------------------
-  dbscan_clust <- fpc::dbscan(analysis_data_scaled, eps = 3, MinPts = 3)
+  dbscan_clust <-
+    fpc::dbscan(analysis_data_scaled, eps = 3, MinPts = 3)
   data_dbscan <- # Put generated clusters in a list
     lapply(X = ls(pattern = "dbscan_clust"), FUN = get)
   names(x = data_dbscan) <-
@@ -265,7 +267,7 @@ for (data_to_analyze in my_analysis_data) {
     ggplot(data = plot_df, mapping = aes_string(x = 1:nrow(x = plot_df),
                                                 y = paste(data_col))) +
       geom_point(mapping = aes_string(color = paste(cluster_col))) +
-      ggtitle(label = "Repartition des sujets dans les clusters")
+      ggtitle(label = "Subject repartition in clusters")
   }
 
   for (cluster_col in cluster_columns) {

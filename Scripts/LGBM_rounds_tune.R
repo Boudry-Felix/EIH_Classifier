@@ -33,9 +33,9 @@ for (my_analysis_data in analysis_data) {
   # Setting general variables
   my_analysis_data <-
     merge(x = my_analysis_data,
-          y = my_data$labels[c("eih", "sujet")],
-          by = "sujet") %>%
-    select(.data = ., -c("sujet"))
+          y = my_data$labels[c("eih", "subject")],
+          by = "subject") %>%
+    select(.data = ., -c("subject"))
 
   ## Light GBM analysis -----------------------------------------------------
   ## Analysis using lightGBM algorithm

@@ -35,9 +35,9 @@ for (my_analysis_data in analysis_data) {
   # Setting general variables
   my_analysis_data <-
     merge(x = my_analysis_data,
-          y = my_data$labels[c("eih", "sujet")],
-          by = "sujet") %>%
-    select(.data = ., -c("sujet"))
+          y = my_data$labels[c("eih", "subject")],
+          by = "subject") %>%
+    select(.data = ., -c("subject"))
 
   ## GBM analysis -----------------------------------------------------------
   ## Analysis using a classical GBM model
@@ -46,9 +46,9 @@ for (my_analysis_data in analysis_data) {
   gbm_split_indexes <- # Separate data in two using p
     createDataPartition(y = my_analysis_data$eih, p = 0.65, list = FALSE)
   gbm_train_data <- # Create a train data set
-    my_analysis_data[gbm_split_indexes,]
+    my_analysis_data[gbm_split_indexes, ]
   gbm_test_data <- # Create a test data set
-    my_analysis_data[-gbm_split_indexes,]
+    my_analysis_data[-gbm_split_indexes, ]
 
   gbm_train_data$eih <- # Factorize EIH column
     as.numeric(x = as.factor(x = gbm_train_data$eih))
@@ -120,9 +120,9 @@ for (my_analysis_data in analysis_data) {
   gbm_caret_split_indexes <- # Separate data in two using p
     createDataPartition(y = my_analysis_data$eih, p = 0.65, list = FALSE)
   gbm_caret_train_data <- # Create a train data set
-    my_analysis_data[gbm_caret_split_indexes,]
+    my_analysis_data[gbm_caret_split_indexes, ]
   gbm_caret_test_data <- # Create a test data set
-    my_analysis_data[-gbm_caret_split_indexes,]
+    my_analysis_data[-gbm_caret_split_indexes, ]
 
   gbm_caret_train_data$eih <- # Factorize EIH column
     as.numeric(x = as.factor(x = gbm_caret_train_data$eih))
@@ -150,7 +150,6 @@ for (my_analysis_data in analysis_data) {
       returnResamp = "all"
     )
   )
-
   gbm_caret_importance = summary(object = gbm_caret_model, las = 1)
 
   ### Test model ------------------------------------------------------------
@@ -181,10 +180,10 @@ for (my_analysis_data in analysis_data) {
     createDataPartition(y = my_analysis_data$eih, p = 0.70, list = FALSE)
   light_gbm_train_data <-
     # Create a train data set and remove unused data
-    my_analysis_data[light_gbm_split_indexes,]
+    my_analysis_data[light_gbm_split_indexes, ]
   light_gbm_test_data <-
     # Create a test data set and remove unused data
-    my_analysis_data[-light_gbm_split_indexes,]
+    my_analysis_data[-light_gbm_split_indexes, ]
 
   light_gbm_train_data_label <-
     light_gbm_train_data %>% # Create training labels
@@ -230,15 +229,13 @@ for (my_analysis_data in analysis_data) {
     my_params <- readRDS(file = my_config)
   }
 
-  light_gbm_params <- c(
-    list(
-      # Define parameters for lightGBM training
-      objective = 'binary',
-      boosting = "dart",
-      metric = "binary_logloss"
-    ),
-    my_params
-  )
+  light_gbm_params <- c(list(
+    # Define parameters for lightGBM training
+    objective = 'binary',
+    boosting = "dart",
+    metric = "binary_logloss"
+  ),
+  my_params)
 
   light_gbm_valids <-
     list(test = light_gbm_dtest) # Create a valid (reference) dataset
@@ -248,7 +245,7 @@ for (my_analysis_data in analysis_data) {
     # Train model
     params = light_gbm_params,
     data = light_gbm_dtrain,
-    nrounds = 2100L,
+    nrounds = 1500L,
     valids = light_gbm_valids
   )
 
@@ -336,6 +333,9 @@ my_results <- append(x = my_results,
                        simplify = FALSE,
                        USE.NAMES = TRUE
                      ))
+
+# Advanced plotting -------------------------------------------------------
+source(file = "./Scripts/Visualization.R", echo = TRUE)
 
 # Remove temporary variables
 rm(list = setdiff(x = ls(), y = ls(pattern = "my_data|my_results")))

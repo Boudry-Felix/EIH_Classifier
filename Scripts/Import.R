@@ -96,11 +96,11 @@ names(my_data) <-
   gsub(pattern = ".xlsx",
        replacement = "",
        x = names(my_data))
-remove_names <- setdiff(names(my_data), my_data_infos$sujet) %>%
-  append(setdiff(my_data_infos$sujet, names(my_data)))
+remove_names <- setdiff(names(my_data), my_data_infos$subject) %>%
+  append(setdiff(my_data_infos$subject, names(my_data)))
 my_data <- my_data[names(my_data) %in% remove_names == FALSE]
 my_data_infos <-
-  my_data_infos[my_data_infos$sujet %in% remove_names == FALSE]
+  my_data_infos[my_data_infos$subject %in% remove_names == FALSE]
 # Remove variables not containing "my_data" & my_data_frame
 rm(list = setdiff(ls(), ls(pattern = "my_data")), my_data_frame)
 
