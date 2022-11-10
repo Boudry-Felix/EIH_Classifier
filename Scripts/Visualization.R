@@ -2,7 +2,7 @@
 
 # Title: Visualization.R
 # Author: Félix Boudry
-# Contact: <felix.boudry@laposte.net>
+# Contact: <felix.boudry@univ-perp.fr>
 # License: Private
 # Description: Visualize computed data and models.
 
@@ -37,7 +37,7 @@ viz_sample <- merge(x = my_data$summary,
                     y = my_data$labels[c("eih", "subject")],
                     by = "subject") %>%
   select(.data = ., -c("subject", "eih"))
-viz_sample <- viz_sample[sample(nrow(viz_sample), 127), ]
+viz_sample <- viz_sample[sample(nrow(viz_sample), 130), ]
 
 shap_data <-
   shapviz(
@@ -48,7 +48,7 @@ shap_data <-
 
 sv_waterfall(shap_data, row_id = 1)
 sv_force(shap_data)
-sv_importance(shap_data, kind = "beeswarm")
+sv_importance(shap_data, kind = "beeswarm", groupOnX = TRUE)
 sv_dependence(shap_data, v = "vco2_max", "auto")
 
 # Remove temporary variables

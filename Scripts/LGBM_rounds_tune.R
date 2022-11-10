@@ -2,9 +2,9 @@
 
 # Title: lightGBM.R
 # Author: Félix Boudry
-# Contact: <felix.boudry@laposte.net>
+# Contact: <felix.boudry@univ-perp.fr>
 # License: Private
-# Description: Analyse the data to create predictive models
+# Description: Run the predictive analysis several times to find optimal nrounds.
 
 # Configuration -----------------------------------------------------------
 

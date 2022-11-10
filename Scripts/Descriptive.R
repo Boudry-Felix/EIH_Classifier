@@ -2,9 +2,9 @@
 
 # Title: Descriptive_statistics.R
 # Author: Félix Boudry
-# Contact: <felix.boudry@laposte.net>
+# Contact: <felix.boudry@univ-perp.fr>
 # License: Private
-# Description: Analyse the data to create models
+# Description: Analyse the data to create descriptive models
 
 # Configuration -----------------------------------------------------------
 
@@ -147,6 +147,10 @@ for (data_to_analyze in my_analysis_data) {
   names(x = data_optics) <-
     ls(pattern = "optics_clust") # Renaming list clusters
 
+  ## Principal component analysis -------------------------------------------
+
+
+
   ## Plotting ---------------------------------------------------------------
 
   ### K-Means ---------------------------------------------------------------
@@ -241,8 +245,8 @@ for (data_to_analyze in my_analysis_data) {
   # PLotting boxplots for each variable in each cluster
   do_plot <- function(data_col) {
     # Function to plot boxplots
-    ggplot(plot_df, aes_string(x = cluster_col, y = paste(data_col))) +
-      geom_boxplot(aes_string(group = cluster_col, fill = cluster_col)) +
+    ggplot(plot_df, aes(x = !!sym(cluster_col), y = !!sym(paste(data_col)))) +
+      geom_boxplot(aes(group = !!sym(cluster_col), fill = !!sym(cluster_col))) +
       ggtitle(label = paste(data_col, "par cluster"))
   }
 
@@ -264,9 +268,9 @@ for (data_to_analyze in my_analysis_data) {
   }
   # PLotting eih subject repartition
   do_plot <- function(data_col) {
-    ggplot(data = plot_df, mapping = aes_string(x = 1:nrow(x = plot_df),
-                                                y = paste(data_col))) +
-      geom_point(mapping = aes_string(color = paste(cluster_col))) +
+    ggplot(data = plot_df, mapping = aes(x = !!(1:nrow(x = plot_df)),
+                                         y = !!sym(paste(data_col)))) +
+      geom_point(mapping = aes(color = !!sym(paste(cluster_col)))) +
       ggtitle(label = "Subject repartition in clusters")
   }
 

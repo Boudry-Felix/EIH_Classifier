@@ -38,7 +38,7 @@ library(data.table)
 library(stringr)
 library(tibble)
 library(dplyr)
-library(tidyr)
+library(plyr)
 library(ggplot2)
 library(factoextra)
 library(clusplus)
@@ -51,8 +51,7 @@ library(reticulate)
 library(dbscan)
 library(fpc)
 library(FCPS)
-library(psych)
-library(kableExtra)
+library(shapviz)
 ```
 
 ```{r Scripts, echo=FALSE, warning=FALSE, paged.print=TRUE}
@@ -60,10 +59,10 @@ library(kableExtra)
 # Some parameters need configuration :
 # - Cluster number has to be specified in the "Descriptive.R" script
 # - eps and MinPts have to be specified for DBScan clustering
-# source("./Scripts/Import.R")
-# source("./Scripts/Compute.R")
-# source("./Scripts/Descriptive.R")
-# source("./Scripts/Predictive.R")
+source("./Scripts/Import.R")
+source("./Scripts/Compute.R")
+source("./Scripts/Descriptive.R")
+source("./Scripts/Predictive.R")
 ```
 
 ```{r}
@@ -103,7 +102,7 @@ kable(gbmParam, col.names = "Valeur", caption = "<center><strong>Paramètres lig
 
 # Introduction
 
-It is well known that endurance performances are limites by physiological factors among which the cardio-respiratory is one of the most importants @(Amann & Calbet, 2008; Bassett, 2000). This system can be limiting through different ways including the limitations of the cardiac outpu (Qc), the oxygen diffusion or the pulmonary perfusion. Those limitations can be enhanced by physical training an dphysiological adaptations to exercise. Thus with training we can observe an increased cardiac output, pulmonary perfusion or oxygene diffusion through an increased hemoglobin concentration.
+It is well known that endurance performances are limited by physiological factors among which the cardio-respiratory is one of the most importants @(Amann & Calbet, 2008; Bassett, 2000). This system can be limiting through different ways including the limitations of the cardiac outpu (Qc), the oxygen diffusion or the pulmonary perfusion. Those limitations can be enhanced by physical training an dphysiological adaptations to exercise. Thus with training we can observe an increased cardiac output, pulmonary perfusion or oxygene diffusion through an increased hemoglobin concentration.
 
 It's also well known that the environment can impact the oxygen pressures and thus the inspired volume. This limitation is also present during experimentation, like simulated altitude, during which the inspired fraction of oxygen is diminished.
 

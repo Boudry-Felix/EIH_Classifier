@@ -2,7 +2,7 @@
 
 # Title: Import.R
 # Author: Félix Boudry
-# Contact: <felix.boudry@laposte.net>
+# Contact: <felix.boudry@univ-perp.fr>
 # License: Private
 # Description: Import the data needed to create a model of the EIH phenomenon.
 

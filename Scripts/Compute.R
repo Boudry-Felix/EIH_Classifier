@@ -2,7 +2,7 @@
 
 # Title: Compute.R
 # Author: Félix Boudry
-# Contact: <felix.boudry@laposte.net>
+# Contact: <felix.boudry@univ-perp.fr>
 # License: Private
 # Description: Compute needed data and format them
 
@@ -32,11 +32,11 @@ my_data$all <-
   lapply(
     X = my_data$all,
     FUN = function(my_dataframe)
-      filter(.data = my_dataframe,
+      dplyr::filter(.data = my_dataframe,
              rowSums(x = is.na(x = my_dataframe)) != ncol(x = my_dataframe))
   )
 
-# Remove outliers ---------------------------------------------------------
+# Remove outliers (all) ---------------------------------------------------
 remove_outliers <-
   TRUE # Chose to keep or remove outliers, may loose accuracy
 if (remove_outliers) {
@@ -142,21 +142,21 @@ excluded_variables <- # Variables to remove from training data set
 my_summary <- # Replace "-Inf" with NAs
   mutate_all(.tbl = my_summary, ~ replace(., . == c("-Inf", "Inf"), NA))
 my_summary <- # Remove NA only rows
-  filter(.data = my_summary,
+  dplyr::filter(.data = my_summary,
          rowSums(x = is.na(x = my_summary)) != ncol(x = my_summary)) %>%
   select_if(.tbl = ., # Remove columns on condition
             .predicate = colSums(x = is.na(x = my_summary)) < 5)
 my_summary <- # Add informations to summary
   merge(
     x = my_summary,
-    y = select(.data = my_data$infos, -excluded_variables),
+    y = select(.data = my_data$infos, -all_of(excluded_variables)),
     by = "subject",
     all = TRUE
   )
 ## Put labels in separated data frames
 my_labels <-
-  select(.data = my_summary, c("subject", "eih", "eih_severity"))
-my_summary <- select(.data = my_summary, -c("eih", "eih_severity"))
+  select(.data = my_summary, all_of(c("subject", "eih", "eih_severity")))
+my_summary <- select(.data = my_summary, -all_of(c("eih", "eih_severity")))
 ## Labeling categorical variables
 my_label_env_sex <- LabelEncoder.fit(my_summary$sex)
 my_summary$sex <- transform(my_label_env_sex, my_summary$sex)
