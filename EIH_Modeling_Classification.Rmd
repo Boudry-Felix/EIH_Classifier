@@ -52,6 +52,7 @@ library(dbscan)
 library(fpc)
 library(FCPS)
 library(shapviz)
+library(FactoMineR)
 ```
 
 ```{r Scripts, echo=FALSE, warning=FALSE, paged.print=TRUE}

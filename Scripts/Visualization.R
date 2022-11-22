@@ -37,7 +37,7 @@ viz_sample <- merge(x = my_data$summary,
                     y = my_data$labels[c("eih", "subject")],
                     by = "subject") %>%
   select(.data = ., -c("subject", "eih"))
-viz_sample <- viz_sample[sample(nrow(viz_sample), 130), ]
+viz_sample <- viz_sample[sample(nrow(viz_sample), 127), ]
 
 shap_data <-
   shapviz(

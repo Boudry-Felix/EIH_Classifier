@@ -26,8 +26,8 @@ dir.create(path = paste0("./Output/Model_", my_date, "/")) # Create directory to
 
 # Select data ------------------------------------------------------------
 analysis_data <- # Put all data to analyze in a list
-  lst(my_data$summary, my_data$summary_relative) %>%
-  `names<-`(c("absolute", "relative"))
+  lst(my_data$summary, my_data$summary_relative, my_data$PCA_summary) %>%
+  `names<-`(c("absolute", "relative", "PCA"))
 
 # Analysis ----------------------------------------------------------------
 my_counter <- 1
@@ -253,7 +253,7 @@ for (my_analysis_data in analysis_data) {
   light_gbm_test_data <- as.matrix(x = light_gbm_test_data)
   light_gbm_pred <-
     predict(object = light_gbm_model, light_gbm_test_data, reshape = TRUE)
-  light_gbm_pred_y = ifelse(light_gbm_pred > 0.5, 1, 0)
+  light_gbm_pred_y = ifelse(light_gbm_pred > 0.505, 1, 0)
 
   light_gbm_confusion <-
     confusionMatrix(as.factor(x = light_gbm_test_data_label$eih),

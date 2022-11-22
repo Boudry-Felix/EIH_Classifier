@@ -147,10 +147,6 @@ for (data_to_analyze in my_analysis_data) {
   names(x = data_optics) <-
     ls(pattern = "optics_clust") # Renaming list clusters
 
-  ## Principal component analysis -------------------------------------------
-
-
-
   ## Plotting ---------------------------------------------------------------
 
   ### K-Means ---------------------------------------------------------------
@@ -246,7 +242,10 @@ for (data_to_analyze in my_analysis_data) {
   do_plot <- function(data_col) {
     # Function to plot boxplots
     ggplot(plot_df, aes(x = !!sym(cluster_col), y = !!sym(paste(data_col)))) +
-      geom_boxplot(aes(group = !!sym(cluster_col), fill = !!sym(cluster_col))) +
+      geom_boxplot(aes(
+        group = !!sym(cluster_col),
+        fill = !!sym(cluster_col)
+      )) +
       ggtitle(label = paste(data_col, "par cluster"))
   }
 
