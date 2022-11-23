@@ -34,7 +34,7 @@ my_data$all <-
     X = my_data$all,
     FUN = function(my_dataframe)
       dplyr::filter(.data = my_dataframe,
-             rowSums(x = is.na(x = my_dataframe)) != ncol(x = my_dataframe))
+                    rowSums(x = is.na(x = my_dataframe)) != ncol(x = my_dataframe))
   )
 
 # Remove outliers (all) ---------------------------------------------------
@@ -144,7 +144,7 @@ my_summary <- # Replace "-Inf" with NAs
   mutate_all(.tbl = my_summary, ~ replace(., . == c("-Inf", "Inf"), NA))
 my_summary <- # Remove NA only rows
   dplyr::filter(.data = my_summary,
-         rowSums(x = is.na(x = my_summary)) != ncol(x = my_summary)) %>%
+                rowSums(x = is.na(x = my_summary)) != ncol(x = my_summary)) %>%
   select_if(.tbl = ., # Remove columns on condition
             .predicate = colSums(x = is.na(x = my_summary)) < 5)
 my_summary <- # Add informations to summary
@@ -157,7 +157,8 @@ my_summary <- # Add informations to summary
 ## Put labels in separated data frames
 my_labels <-
   select(.data = my_summary, all_of(c("subject", "eih", "eih_severity")))
-my_summary <- select(.data = my_summary, -all_of(c("eih", "eih_severity")))
+my_summary <-
+  select(.data = my_summary, -all_of(c("eih", "eih_severity")))
 ## Labeling categorical variables
 my_label_env_sex <- LabelEncoder.fit(my_summary$sex)
 my_summary$sex <- transform(my_label_env_sex, my_summary$sex)
@@ -188,30 +189,83 @@ for (my_column in maximum_columns) {
 PCA_data <- lapply(my_data$all, PCA, graph = FALSE)
 
 ## Summarize --------------------------------------------------------------
-PCA_summary <- data.frame(matrix(nrow = 0, ncol = length(PCA_data[[1]][[1]][, 1])))
+PCA_summary <-
+  data.frame(matrix(nrow = 0, ncol = length(PCA_data[[1]][[1]][, 1])))
 for (my_data_frame in PCA_data) {
   PCA_summary <- rbind(PCA_summary, my_data_frame[[1]][, 1])
 }
 PCA_summary <- cbind(PCA_summary, my_data$infos$subject)
 colnames(PCA_summary) <- c((colnames(my_data$all[[1]])), "subject")
 
+# Remove outliers (summaries) ---------------------------------------------
+remove_outliers <-
+  TRUE # Chose to keep or remove outliers, may loose accuracy
+my_summaries <- list(select(my_summary, -c(subject)), select(my_summary_relative, -c(subject)), select(PCA_summary, -c(subject)))
+if (remove_outliers) {
+  my_summaries <-
+    lapply(
+      X = my_summaries,
+      FUN = function(my_dataframe)
+        lapply(
+          X = my_dataframe,
+          FUN = function(my_col)
+            lapply(
+              X = my_col,
+              FUN = function(my_value)
+                ifelse(
+                  test = my_value %in% boxplot.stats(my_col)$out,
+                  yes = mean(my_col),
+                  no = my_value
+                )
+            )
+        )
+    )
+  my_summaries <-
+    lapply(
+      X = my_summaries,
+      FUN = function(my_dataframe)
+        data.frame(sapply(X = my_dataframe, FUN = c))
+    )
+  my_summaries <-
+    lapply(
+      X = my_summaries,
+      FUN = function(x)
+        lapply(X = x, FUN = as.numeric)
+    ) %>%
+    lapply(FUN = as.data.frame)
+  subject_list <- my_summary$subject
+  my_summary <- my_summaries[1] %>% as.data.frame() %>% cbind("subject" = subject_list)
+  my_summary_relative <- my_summaries[2] %>% as.data.frame() %>% cbind("subject" = subject_list)
+  PCA_summary <- my_summaries[3] %>% as.data.frame() %>% cbind("subject" = subject_list)
+}
+
 # Data structure ----------------------------------------------------------
 # Structuring data in vectors
 my_data <- # Append summary in "my_data"
   append(
     x = my_data,
-    values = lst(my_summary, my_summary_relative, my_labels, my_label_env_sex, my_label_env_sport, PCA_data, PCA_summary)
+    values = lst(
+      my_summary,
+      my_summary_relative,
+      my_labels,
+      my_label_env_sex,
+      my_label_env_sport,
+      PCA_data,
+      PCA_summary
+    )
   ) %>%
-  `names<-`(c(
-    names(x = my_data),
-    "summary",
-    "summary_relative",
-    "labels",
-    "label_env_sex",
-    "label_env_sport",
-    "PCA",
-    "PCA_summary"
-  ))
+  `names<-`(
+    c(
+      names(x = my_data),
+      "summary",
+      "summary_relative",
+      "labels",
+      "label_env_sex",
+      "label_env_sport",
+      "PCA",
+      "PCA_summary"
+    )
+  )
 
 # Remove variables not containing "my_data" & my_data_frame
 rm(list = setdiff(x = ls(), y = ls(pattern = "my_data")), my_data_frame)

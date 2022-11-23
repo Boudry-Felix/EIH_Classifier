@@ -253,7 +253,14 @@ for (my_analysis_data in analysis_data) {
   light_gbm_test_data <- as.matrix(x = light_gbm_test_data)
   light_gbm_pred <-
     predict(object = light_gbm_model, light_gbm_test_data, reshape = TRUE)
-  light_gbm_pred_y = ifelse(light_gbm_pred > 0.505, 1, 0)
+  if (my_counter == 1) {
+    light_gbm_pred_y = ifelse(light_gbm_pred > 0.5, 1, 0)
+  } else if (my_counter == 2) {
+    light_gbm_pred_y = ifelse(light_gbm_pred > 0.5, 1, 0)
+  } else {
+    light_gbm_pred_y = ifelse(light_gbm_pred > 0.505, 1, 0)
+  }
+
 
   light_gbm_confusion <-
     confusionMatrix(as.factor(x = light_gbm_test_data_label$eih),
