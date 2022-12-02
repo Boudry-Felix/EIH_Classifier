@@ -68,18 +68,40 @@ source("./Scripts/Predictive.R")
 
 ```{r}
 load(file = "./Environments/predictive.RData")
-my_results$my_models_absolute$gbm_caret_model_results$gbm_caret_confusion$overall
-my_results$my_models_absolute$gbm_model_results$gbm_confusion$overall
-my_results$my_models_absolute$light_gbm_model_results$light_gbm_confusion$overall
-my_results$my_models_relative$gbm_caret_model_results$gbm_caret_confusion$overall
-my_results$my_models_relative$gbm_model_results$gbm_confusion$overall
-my_results$my_models_relative$light_gbm_model_results$light_gbm_confusion$overall
+```
 
+# Introduction
+
+It is well known that endurance performances are limited by physiological factors among which the cardio-respiratory is one of the most importants @(Amann & Calbet, 2008; Bassett, 2000). This system can be limiting through different ways including the limitations of the cardiac outpu (Qc), the oxygen diffusion or the pulmonary perfusion. Those limitations can be enhanced by physical training an dphysiological adaptations to exercise. Thus with training we can observe an increased cardiac output, pulmonary perfusion or oxygene diffusion through an increased hemoglobin concentration.
+
+It's also well known that the environment can impact the oxygen pressures and thus the inspired volume. This limitation is also present during experimentation, like simulated altitude, during which the inspired fraction of oxygen is diminished.
+
+If the cardiac system is one of the most known limiting, the pulmonary system can also participated in the observed limitations.
+This system is complicated and the pulmonary anatomy is composed by several "section".
+A known physiopathology impact athlete's perfromances is the exercise-induces hypoxemia (EIH) @raberinHypoxemieInduiteExercice2019. The purpose of this work is to be able to classify athletes as EIH or NEIH without using the direct indicator (saturation).
+
+# Methods
+
+## Subjects
+
+```{r}
 antropometricsDescript <-
   describe(my_data$infos)[c("age", "taille", "poids", "saturation_fin"), c("mean", "sd", "median", "min", "max")]
 trainDescript <-
   describe(my_data$infos)[c("volume_entrainement", "annees_entrainement"), c("mean", "sd", "median", "min", "max")]
 subjectSports <- table(my_data$inf$sport)
+
+kable(antropometricsDescript, caption = "<center><strong>Données anthropologiques (n = 127)</center></strong>")
+kable(trainDescript, caption = "<center><strong>Données d'entraînement des athlètes (n = 127)</center></strong>")
+kable(subjectSports,
+      col.names = c("Sport", "Freq"),
+      caption = "<center><strong>Sports pratiqués (n = 127)</center></strong>")
+kable(gbmParam, col.names = "Valeur", caption = "<center><strong>Paramètres lightGBM</center></strong>")
+```
+
+## LightGBM
+
+```{r}
 gbmParam <-
   t(as.data.frame(my_results$my_models_absolute$light_gbm_model_results$light_gbm_params[c(
     "boosting",
@@ -92,23 +114,18 @@ gbmParam <-
     "bagging_freq",
     "learning_rate"
   )]))
-kable(antropometricsDescript, caption = "<center><strong>Données anthropologiques (n = 127)</center></strong>")
-kable(trainDescript, caption = "<center><strong>Données d'entraînement des athlètes (n = 127)</center></strong>")
-kable(subjectSports,
-      col.names = c("Sport", "Freq"),
-      caption = "<center><strong>Sports pratiqués (n = 127)</center></strong>")
-kable(gbmParam, col.names = "Valeur", caption = "<center><strong>Paramètres lightGBM</center></strong>")
 ```
 
+# Results
 
-# Introduction
-
-It is well known that endurance performances are limited by physiological factors among which the cardio-respiratory is one of the most importants @(Amann & Calbet, 2008; Bassett, 2000). This system can be limiting through different ways including the limitations of the cardiac outpu (Qc), the oxygen diffusion or the pulmonary perfusion. Those limitations can be enhanced by physical training an dphysiological adaptations to exercise. Thus with training we can observe an increased cardiac output, pulmonary perfusion or oxygene diffusion through an increased hemoglobin concentration.
-
-It's also well known that the environment can impact the oxygen pressures and thus the inspired volume. This limitation is also present during experimentation, like simulated altitude, during which the inspired fraction of oxygen is diminished.
-
-If the cardiac system is one of the most known limiting, the pulmonary system can also participated in the observed limitations.
-This system is complicated and the pulmonary anatomy is composed by several "section". @raberinHypoxemieInduiteExercice2019
+```{r}
+my_results$my_models_absolute$gbm_caret_model_results$gbm_caret_confusion$overall
+my_results$my_models_absolute$gbm_model_results$gbm_confusion$overall
+my_results$my_models_absolute$light_gbm_model_results$light_gbm_confusion$overall
+my_results$my_models_relative$gbm_caret_model_results$gbm_caret_confusion$overall
+my_results$my_models_relative$gbm_model_results$gbm_confusion$overall
+my_results$my_models_relative$light_gbm_model_results$light_gbm_confusion$overall
+```
 
 # References
 

@@ -10,7 +10,7 @@ This project aims to create a mathematical model explaining the "Exercise Induce
 
 ### Descriptive analysis
 
-This first approach is based on several clustering methods. The purpose is to determine if it is possible to regroup subjects using only gas exchange values in order to categorize them as EIH athletes or NEIH athletes. For more details about this methods, visit [scikit-learn](https://scikit-learn.org/stable/modules/clustering.html#clustering).
+This first approach is based on several clustering methods. The purpose is to determine if it is possible to regroup subjects using only gas exchange values in order to categorize them as EIH athletes or NEIH (not EIH) athletes. For more details about those methods, visit [scikit-learn](https://scikit-learn.org/stable/modules/clustering.html#clustering).
 
 ### Predictive analysis
 
@@ -45,8 +45,8 @@ You can put your own data in the "Data"" folder but you have to follow a structu
 ### Scripts
 
 Each script has a specific purpose described in it's "Informations" section and should run smoothly if you respected the data structure.
-You only have to configure the lightGBM parameter by putting the results of the optuna script (that can be found in "Output") into the "Params" folder. If this folder is empty or the parameters are set to NULL in the script the the optuna script will be executed to compute new parameters.
+You only have to configure the lightGBM parameter by putting the results of the optuna script (that can be found in "Output") into the "Params" folder. If this folder is empty or the parameters are set to NULL in the script and the optuna script will be executed to compute new parameters.
 
 ## Contact
 
-For further discussions you can contact me at [felix.boudry\@univ-perp.fr](mailto:felix.boudry@univ-perp.fr){.email}.
+For further discussions or informations you can contact me at [felix.boudry\@univ-perp.fr](mailto:felix.boudry@univ-perp.fr).
