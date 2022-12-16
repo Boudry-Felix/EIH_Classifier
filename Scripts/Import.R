@@ -111,4 +111,7 @@ my_data <- lst(my_data, my_data_infos) %>%
 rm(my_data_infos)
 
 # Export data -------------------------------------------------------------
+if (!dir.exists("./Environments")) {
+  dir.create("./Environments")
+}
 save.image(file = "./Environments/import.RData")

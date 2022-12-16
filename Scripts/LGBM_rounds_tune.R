@@ -24,8 +24,8 @@ load(file = "./Environments/predictive.RData") # Load environment
 
 # Select data ------------------------------------------------------------
 analysis_data <- # Put all data to analyze in a list
-  lst(my_data$summary, my_data$summary_relative) %>%
-  `names<-`(c("absolute", "relative"))
+  lst(my_data$summary, my_data$summary_relative, my_data$PCA_summary) %>%
+  `names<-`(c("absolute", "relative", "PCA"))
 
 # Analysis ----------------------------------------------------------------
 my_counter <- 1

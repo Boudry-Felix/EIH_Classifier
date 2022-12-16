@@ -22,6 +22,9 @@ require(reticulate)
 rm(list = ls()) # Clean environment
 load(file = "./Environments/descriptive.RData") # Load environment
 my_date <- format(Sys.time(), "%d-%m-%Y_%H.%M")
+if (!dir.exists("./Output")) {
+  dir.create("./Output")
+}
 dir.create(path = paste0("./Output/Model_", my_date, "/")) # Create directory to store results
 
 # Select data ------------------------------------------------------------
@@ -30,6 +33,7 @@ analysis_data <- # Put all data to analyze in a list
   `names<-`(c("absolute", "relative", "PCA"))
 
 # Analysis ----------------------------------------------------------------
+source(file = "./Scripts/LGBM_rounds_tune.R") # Compute optimal nrounds
 my_counter <- 1
 for (my_analysis_data in analysis_data) {
   # Setting general variables
@@ -220,13 +224,12 @@ for (my_analysis_data in analysis_data) {
     )
 
   ### Configure -------------------------------------------------------------
-  my_config <- NULL
-  my_config <- paste0("Params/Best_params", my_counter, ".rds")
-  if (is.null(my_config)) {
+  if (dir.exists("./Params")) {
+    my_config <- paste0("Params/Best_params", my_counter, ".rds")
+    my_params <- readRDS(file = my_config)
+  } else {
     source_python("./Scripts/LGBM_optuna_tune.py")
     my_params <- study$best_params
-  } else {
-    my_params <- readRDS(file = my_config)
   }
 
   light_gbm_params <- c(list(
@@ -283,7 +286,7 @@ for (my_analysis_data in analysis_data) {
   )
 
   # Data structure ----------------------------------------------------------
-  if (is.null(my_config)) {
+  if (!dir.exists("./Params")) {
     saveRDS(
       object = as.list(study$best_params),
       file = paste0(
