@@ -19,7 +19,7 @@ require(reticulate)
 
 # Environment -------------------------------------------------------------
 # Define vectors used in entire script.
-rm(list = ls()) # Clean environment
+rm(list = setdiff(x = ls(), y = lsf.str())) # Clean environment
 load(file = "./Environments/predictive.RData") # Load environment
 
 # Select data ------------------------------------------------------------
@@ -144,5 +144,5 @@ for (my_analysis_data in analysis_data) {
 # Remove temporary variables
 rm(list = setdiff(
   x = ls(),
-  y = ls(pattern = "my_data|my_results|Results.*")
+  y = c(lsf.str(), ls(pattern = "my_data|my_results|Results.*|analysis_data"))
 ))

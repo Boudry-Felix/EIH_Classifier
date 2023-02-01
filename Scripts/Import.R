@@ -19,7 +19,7 @@ require(fs)
 
 ## Global vectors ---------------------------------------------------------
 ## Define vectors used in entire script.
-rm(list = ls()) # Clean environment
+rm(list = setdiff(x = ls(), y = lsf.str())) # Clean environment
 my_data <- lst() # Create a list for data
 my_data_infos <-
   data.table() # Create a table for informations about subjects
@@ -56,7 +56,7 @@ for (my_study in studies_list) {
     )) %>%
     clean_names()
   data_infos <- subject_informations %>% # Merge informations
-    append(x = ., values = test_informations[1,]) %>%
+    append(x = ., values = test_informations[1, ]) %>%
     as.data.table()
   files_list <- dir_info(my_study, recurse = TRUE) %>%
     filter(type == "file")
@@ -81,28 +81,25 @@ for (my_study in studies_list) {
       USE.NAMES = TRUE
     ) %>%
     lapply(clean_names, sep_out = "")
-
   my_data <- append(x = my_data, values = my_list)
   my_data_infos <- rbind(x = my_data_infos, values = data_infos)
   # Remove variables not containing "my_data" & my_data_frame
-  rm(list = setdiff(ls(), ls(pattern = "my_data|clean.*")), my_data_frame)
+  rm(list = setdiff(ls(), c(lsf.str(), ls(pattern = "my_data|clean.*"))), my_data_frame)
 }
 
 names(my_data) <-
   gsub(pattern = "Data/.*/.*/",
        replacement = "",
-       x = names(my_data))
-names(my_data) <-
+       x = names(my_data)) %>%
   gsub(pattern = ".xlsx",
-       replacement = "",
-       x = names(my_data))
+       replacement = "")
 remove_names <- setdiff(names(my_data), my_data_infos$subject) %>%
   append(setdiff(my_data_infos$subject, names(my_data)))
 my_data <- my_data[names(my_data) %in% remove_names == FALSE]
 my_data_infos <-
   my_data_infos[my_data_infos$subject %in% remove_names == FALSE]
 # Remove variables not containing "my_data" & my_data_frame
-rm(list = setdiff(ls(), ls(pattern = "my_data")), my_data_frame)
+rm(list = setdiff(ls(), c(lsf.str(), ls(pattern = "my_data"))), my_data_frame)
 
 # Data structure ----------------------------------------------------------
 # Structure all data in a list

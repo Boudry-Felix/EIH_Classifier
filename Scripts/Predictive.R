@@ -19,7 +19,7 @@ require(reticulate)
 
 # Environment -------------------------------------------------------------
 # Define vectors used in entire script.
-rm(list = ls()) # Clean environment
+rm(list = setdiff(x = ls(), y = lsf.str())) # Clean environment
 load(file = "./Environments/descriptive.RData") # Load environment
 my_date <- format(Sys.time(), "%d-%m-%Y_%H.%M")
 if (!dir.exists("./Output")) {
@@ -33,7 +33,7 @@ analysis_data <- # Put all data to analyze in a list
   `names<-`(c("absolute", "relative", "PCA"))
 
 # Analysis ----------------------------------------------------------------
-source(file = "./Scripts/LGBM_rounds_tune.R") # Compute optimal nrounds
+# source(file = "./Scripts/LGBM_rounds_tune.R") # Compute optimal nrounds
 my_counter <- 1
 for (my_analysis_data in analysis_data) {
   # Setting general variables
@@ -248,7 +248,7 @@ for (my_analysis_data in analysis_data) {
     # Train model
     params = light_gbm_params,
     data = light_gbm_dtrain,
-    nrounds = 1500L,
+    nrounds = 300L,
     valids = light_gbm_valids
   )
 
@@ -332,7 +332,7 @@ for (my_analysis_data in analysis_data) {
   my_counter <- my_counter + 1
   rm(list = setdiff(
     x = ls(),
-    y = ls(pattern = "my_data|my_results|my_models.*|my_counter|analysis_data|my_date")
+    y = c(lsf.str(), ls(pattern = "my_data|my_results|my_models.*|my_counter|analysis_data|my_date"))
   ))
 }
 
@@ -348,7 +348,7 @@ my_results <- append(x = my_results,
 source(file = "./Scripts/Visualization.R", echo = TRUE)
 
 # Remove temporary variables
-rm(list = setdiff(x = ls(), y = ls(pattern = "my_data|my_results")))
+rm(list = setdiff(x = ls(), y = c(lsf.str(), ls(pattern = "my_data|my_results"))))
 
 # Export data -------------------------------------------------------------
 # Save environment to avoid recomputing

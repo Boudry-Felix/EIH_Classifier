@@ -231,4 +231,4 @@ sv_importance(shap_data, kind = "beeswarm", groupOnX = TRUE)
 sv_dependence(shap_data, v = "vco2_max", "auto")
 
 # Remove temporary variables
-rm(list = setdiff(x = ls(), y = ls(pattern = "my_data|my_results")))
+rm(list = setdiff(x = ls(), y = c(lsf.str(), ls(pattern = "my_data|my_results"))))

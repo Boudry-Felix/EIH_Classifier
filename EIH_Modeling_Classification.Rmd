@@ -6,7 +6,7 @@ documentclass: article
 classoption: oneside
 lang: en-US
 output:
-  html_document:
+  html_document: 
     toc: yes
     number_section: yes
     fig_caption: yes
@@ -23,7 +23,7 @@ output:
 bibliography: EIH_modeling.bib
 ---
 
-```{r Setup, include=FALSE, echo=FALSE}
+```{r Setup, echo=FALSE, message=FALSE, warning=FALSE}
 knitr::opts_chunk$set(
 	echo = FALSE,
 	error = TRUE,
@@ -53,13 +53,17 @@ library(fpc)
 library(FCPS)
 library(shapviz)
 library(FactoMineR)
+library(psych)
+library(kableExtra)
+library(purrr)
 ```
 
-```{r Scripts, echo=FALSE, warning=FALSE, paged.print=TRUE}
+```{r Scripts, message=FALSE, warning=FALSE, include=FALSE, paged.print=TRUE}
 # Sourcing scripts
 # Some parameters need configuration :
 # - Cluster number has to be specified in the "Descriptive.R" script
 # - eps and MinPts have to be specified for DBScan clustering
+source("./Scripts/Functions.R")
 source("./Scripts/Import.R")
 source("./Scripts/Compute.R")
 source("./Scripts/Descriptive.R")
@@ -78,7 +82,7 @@ It's also well known that the environment can impact the oxygen pressures and th
 
 If the cardiac system is one of the most known limiting, the pulmonary system can also participated in the observed limitations.
 This system is complicated and the pulmonary anatomy is composed by several "section".
-A known physiopathology impact athlete's perfromances is the exercise-induces hypoxemia (EIH) @raberinHypoxemieInduiteExercice2019. The purpose of this work is to be able to classify athletes as EIH or NEIH without using the direct indicator (saturation).
+A known physiopathology impact athlete's performances is the exercise-induces hypoxemia (EIH) @raberinHypoxemieInduiteExercice2019. The purpose of this work is to be able to classify athletes as EIH or NEIH without using the direct indicator (saturation).
 
 # Methods
 
@@ -86,22 +90,46 @@ A known physiopathology impact athlete's perfromances is the exercise-induces hy
 
 ```{r}
 antropometricsDescript <-
-  describe(my_data$infos)[c("age", "taille", "poids", "saturation_fin"), c("mean", "sd", "median", "min", "max")]
+  describe(my_data$infos, na.rm = T)[c("age", "height", "weight", "saturation_end"), c("mean", "sd", "median", "min", "max")]
 trainDescript <-
-  describe(my_data$infos)[c("volume_entrainement", "annees_entrainement"), c("mean", "sd", "median", "min", "max")]
+  describe(my_data$infos)[c("train_volume", "train_years"), c("mean", "sd", "median", "min", "max")]
 subjectSports <- table(my_data$inf$sport)
 
-kable(antropometricsDescript, caption = "<center><strong>Données anthropologiques (n = 127)</center></strong>")
-kable(trainDescript, caption = "<center><strong>Données d'entraînement des athlètes (n = 127)</center></strong>")
-kable(subjectSports,
-      col.names = c("Sport", "Freq"),
-      caption = "<center><strong>Sports pratiqués (n = 127)</center></strong>")
-kable(gbmParam, col.names = "Valeur", caption = "<center><strong>Paramètres lightGBM</center></strong>")
+my_table(antropometricsDescript, caption = "<center><strong>Données anthropologiques (n = 127)</center></strong>")
+my_table(trainDescript, caption = "<center><strong>Données d'entraînement des athlètes (n = 127)</center></strong>")
+my_table(subjectSports,
+         col.names = c("Sport", "Freq"),
+         caption = "<center><strong>Sports pratiqués (n = 127)</center></strong>")
 ```
 
-## LightGBM
+# Results
+
+## Descriptive
+
+### Absolute
 
 ```{r}
+my_results$cluster_results_absolute %>% walk(print)
+```
+
+### Relative
+
+```{r}
+my_results$cluster_results_relative %>% walk(print)
+```
+
+
+## Predicitve
+
+```{r}
+my_results$my_models_absolute$gbm_caret_model_results$gbm_caret_confusion$overall
+my_results$my_models_absolute$gbm_model_results$gbm_confusion$overall
+my_results$my_models_absolute$light_gbm_model_results$light_gbm_confusion$overall
+my_results$my_models_relative$gbm_caret_model_results$gbm_caret_confusion$overall
+my_results$my_models_relative$gbm_model_results$gbm_confusion$overall
+my_results$my_models_relative$light_gbm_model_results$light_gbm_confusion$overall
+my_results$my_models_PCA$light_gbm_model_results$light_gbm_confusion$overall
+
 gbmParam <-
   t(as.data.frame(my_results$my_models_absolute$light_gbm_model_results$light_gbm_params[c(
     "boosting",
@@ -116,16 +144,22 @@ gbmParam <-
   )]))
 ```
 
-# Results
+### Absolute
 
 ```{r}
-my_results$my_models_absolute$gbm_caret_model_results$gbm_caret_confusion$overall
-my_results$my_models_absolute$gbm_model_results$gbm_confusion$overall
-my_results$my_models_absolute$light_gbm_model_results$light_gbm_confusion$overall
-my_results$my_models_relative$gbm_caret_model_results$gbm_caret_confusion$overall
-my_results$my_models_relative$gbm_model_results$gbm_confusion$overall
-my_results$my_models_relative$light_gbm_model_results$light_gbm_confusion$overall
-my_results$my_models_PCA$light_gbm_model_results$light_gbm_confusion$overall
+my_results$my_models_absolute
+```
+
+### Relative
+
+```{r}
+my_results$my_models_relative
+```
+
+### PCA
+
+```{r}
+my_results$my_models_PCA
 ```
 
 # References
