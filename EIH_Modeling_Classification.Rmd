@@ -56,6 +56,8 @@ library(FactoMineR)
 library(psych)
 library(kableExtra)
 library(purrr)
+library(stringi)
+library(tidyverse)
 ```
 
 ```{r Scripts, message=FALSE, warning=FALSE, include=FALSE, paged.print=TRUE}

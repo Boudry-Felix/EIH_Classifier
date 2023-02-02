@@ -1,5 +1,4 @@
 # Informations ------------------------------------------------------------
-
 # Title: Compute.R
 # Author: Félix Boudry
 # Contact: <felix.boudry@univ-perp.fr>
@@ -10,9 +9,7 @@
 
 ## Libraries --------------------------------------------------------------
 ## List of used libraries.
-require(plyr)
-require(dplyr)
-require(tibble)
+require(tidyverse)
 require(CatEncoders)
 require(FactoMineR)
 
@@ -23,65 +20,26 @@ load(file = "./Environments/import.RData") # Load environment
 
 # Select columns ----------------------------------------------------------
 # Select only columns present in all data frames
-my_colnames <- lapply(X = my_data$all, FUN = colnames) %>%
-  Reduce(f = intersect, x = .)
-my_data$all <- lapply(X = my_data$all, FUN = "[", my_colnames)
+my_data$all <- lapply(X = my_data$all, FUN = colnames) %>%
+  Reduce(f = intersect) %>%
+  lapply(X = my_data$all, FUN = "[", .)
 
 # Clean data --------------------------------------------------------------
-# remove NA only rows
+# remove NA only rows an doutliers
 my_data$all <-
   lapply(
     X = my_data$all,
     FUN = function(my_dataframe)
-      dplyr::filter(.data = my_dataframe,
-                    rowSums(x = is.na(x = my_dataframe)) != ncol(x = my_dataframe))
-  )
+      filter(.data = my_dataframe,
+             rowSums(x = is.na(x = my_dataframe)) != ncol(x = my_dataframe))
+  ) %>%
+  remove_outliers()
 
-# Remove outliers (all) ---------------------------------------------------
-remove_outliers <-
-  TRUE # Chose to keep or remove outliers, may loose accuracy
-if (remove_outliers) {
-  my_data$all <-
-    lapply(
-      X = my_data$all,
-      FUN = function(my_dataframe)
-        lapply(
-          X = my_dataframe,
-          FUN = function(my_col)
-            lapply(
-              X = my_col,
-              FUN = function(my_value)
-                ifelse(
-                  test = my_value %in% boxplot.stats(my_col)$out,
-                  yes = NA,
-                  no = my_value
-                )
-            )
-        )
-    )
-  my_data$all <-
-    lapply(
-      X = my_data$all,
-      FUN = function(my_dataframe)
-        data.frame(sapply(X = my_dataframe, FUN = c))
-    )
-  my_data$all <-
-    lapply(
-      X = my_data$all,
-      FUN = function(x)
-        lapply(X = x, FUN = as.numeric)
-    ) %>%
-    lapply(FUN = as.data.frame)
-}
-
-# Summarize ---------------------------------------------------------------
+# Summary absolute --------------------------------------------------------
 # Summarizing all data frames into one
-
-## Compute ----------------------------------------------------------------
-tmp_summary <- # Compute data for initial data frame
-  dplyr::summarise(# Summarise a dataframe
-    .data = my_data$all[[1]],
-    across(
+my_summary <- mapply(
+  FUN = function(df_input, name_input)
+    dplyr::summarise(df_input, across(
       # Compute .fns for each column
       .cols = everything(),
       # Columns to compute
@@ -93,102 +51,24 @@ tmp_summary <- # Compute data for initial data frame
         median = median
       ),
       na.rm = TRUE
-    ))
+    )) %>%
+    cbind("subject" = name_input),
+  df_input = my_data$all,
+  name_input = names(my_data$all)
+) %>%
+  t() %>%
+  as.data.frame() %>%
+  unnest(cols = colnames(x = .)) %>%
+  merge(y = my_data$infos, by = "subject", all = TRUE)
 
-my_summary <- tmp_summary # Creating dataframe to merge in loop
-i <- 1
-for (my_data_frame in my_data$all) {
-  # Summarise each dataframe in list
-  tmp_summary <- # Summarise a dataframe
-    dplyr::summarise(.data = my_data_frame, across(
-      # Compute .fns for each column
-      .cols = everything(),
-      # Columns to compute
-      .fns = list(
-        # Functions to apply on columns
-        mean = mean,
-        max = max,
-        min = min,
-        median = median
-      ),
-      na.rm = TRUE
-    ))
-  tmp_summary["subject"] <- # Add "sujet" column with dataframe name
-    sub(pattern = "\\.xlsx",
-        # Remove extension
-        replacement = "",
-        names(my_data$all[i]))
-  i <- i + 1
-  my_summary <-
-    merge(x = my_summary, y = tmp_summary, all = TRUE) # Append to summary
-}
-
-## Cleaning ---------------------------------------------------------------
-## Set unused features
-excluded_variables <- # Variables to remove from training data set
-  c(
-    "saturation_rest",
-    "saturation_end",
-    "saturation_delta",
-    "study_name",
-    "test",
-    "data_type",
-    "type",
-    "activity",
-    "altitude",
-    "environment",
-    "intensity"
-  )
-## Set all unknown to NA's
-my_summary <- # Replace "-Inf" with NAs
-  mutate_all(.tbl = my_summary, ~ replace(., . == c("-Inf", "Inf"), NA))
-my_summary <- # Remove NA only rows
-  dplyr::filter(.data = my_summary,
-                rowSums(x = is.na(x = my_summary)) != ncol(x = my_summary)) %>%
-  select_if(.tbl = ., # Remove columns on condition
-            .predicate = colSums(x = is.na(x = my_summary)) < 5)
-my_summary <- # Add informations to summary
-  merge(
-    x = my_summary,
-    y = select(.data = my_data$infos, -all_of(excluded_variables)),
-    by = "subject",
-    all = TRUE
-  )
-## Put labels in separated data frames
-my_labels <-
-  select(.data = my_summary, all_of(c("subject", "eih", "eih_severity")))
-my_summary <-
-  select(.data = my_summary, -all_of(c("eih", "eih_severity")))
-## Labeling categorical variables
-my_label_env_sex <- LabelEncoder.fit(my_summary$sex)
-my_summary$sex <- transform(my_label_env_sex, my_summary$sex)
-my_label_env_sport <- LabelEncoder.fit(my_summary$sport)
-my_summary$sport <- transform(my_label_env_sport, my_summary$sport)
-
-## Relative values ---------------------------------------------------------
-## Transform mean and min columns to relatives max values
-my_summary_relative <- my_summary # Copy summary
-maximum_columns <-
-  grep(pattern = "max", x = colnames(x = my_summary_relative)) # List max columns
-
-for (my_column in maximum_columns) {
-  my_variable_name <- colnames(x = my_summary_relative[my_column]) %>%
-    sub(pattern = "_max", replacement = "") # remove "_max" from column name
-  max_colname <- paste0(my_variable_name, "_max")
-  mean_colname <- paste0(my_variable_name, "_mean")
-  min_colname <- paste0(my_variable_name, "_min")
-  my_summary_relative[min_colname] <- # Compute minimum values as %
-    100 * my_summary_relative[min_colname] / my_summary_relative[max_colname]
-  my_summary_relative[mean_colname] <- # Compute mean values as %
-    100 * my_summary_relative[mean_colname] / my_summary_relative[max_colname]
-}
+# Summary relative --------------------------------------------------------
+# Transform mean and min columns to relatives max values
+my_summary_relative <- my_summary %>% # Copy summary
+  compute_relative()
 
 # PCA ---------------------------------------------------------------------
-
-## Compute ----------------------------------------------------------------
+# Compute a PCA summary for analyzed data
 PCA_data <- lapply(my_data$all, PCA, graph = FALSE)
-
-## Summarize --------------------------------------------------------------
 PCA_summary <-
   data.frame(matrix(nrow = 0, ncol = length(PCA_data[[1]][[1]][, 1])))
 for (my_data_frame in PCA_data) {
@@ -198,46 +78,19 @@ PCA_summary <- cbind(PCA_summary, my_data$infos$subject)
 colnames(PCA_summary) <- c((colnames(my_data$all[[1]])), "subject")
 
 # Remove outliers (summaries) ---------------------------------------------
-remove_outliers <-
-  TRUE # Chose to keep or remove outliers, may loose accuracy
-my_summaries <- list(select(my_summary, -c(subject)), select(my_summary_relative, -c(subject)), select(PCA_summary, -c(subject)))
-if (remove_outliers) {
-  my_summaries <-
-    lapply(
-      X = my_summaries,
-      FUN = function(my_dataframe)
-        lapply(
-          X = my_dataframe,
-          FUN = function(my_col)
-            lapply(
-              X = my_col,
-              FUN = function(my_value)
-                ifelse(
-                  test = my_value %in% boxplot.stats(my_col)$out,
-                  yes = mean(my_col),
-                  no = my_value
-                )
-            )
-        )
-    )
-  my_summaries <-
-    lapply(
-      X = my_summaries,
-      FUN = function(my_dataframe)
-        data.frame(sapply(X = my_dataframe, FUN = c))
-    )
-  my_summaries <-
-    lapply(
-      X = my_summaries,
-      FUN = function(x)
-        lapply(X = x, FUN = as.numeric)
-    ) %>%
-    lapply(FUN = as.data.frame)
-  subject_list <- my_summary$subject
-  my_summary <- my_summaries[1] %>% as.data.frame() %>% cbind("subject" = subject_list)
-  my_summary_relative <- my_summaries[2] %>% as.data.frame() %>% cbind("subject" = subject_list)
-  PCA_summary <- my_summaries[3] %>% as.data.frame() %>% cbind("subject" = subject_list)
-}
+my_summaries <-
+  list(select(my_summary, -c(subject)),
+       select(my_summary_relative, -c(subject)),
+       select(PCA_summary, -c(subject)))
+# my_summaries <-
+    # remove_outliers(my_summaries)
+subject_list <- my_summary$subject
+my_summary <-
+  my_summaries[1] %>% as.data.frame() %>% cbind("subject" = subject_list)
+my_summary_relative <-
+  my_summaries[2] %>% as.data.frame() %>% cbind("subject" = subject_list)
+PCA_summary <-
+  my_summaries[3] %>% as.data.frame() %>% cbind("subject" = subject_list)
 
 # Data structure ----------------------------------------------------------
 # Structuring data in vectors
@@ -247,9 +100,9 @@ my_data <- # Append summary in "my_data"
     values = lst(
       my_summary,
       my_summary_relative,
-      my_labels,
-      my_label_env_sex,
-      my_label_env_sport,
+      # my_labels,
+      # my_label_env_sex,
+      # my_label_env_sport,
       PCA_data,
       PCA_summary
     )
@@ -259,9 +112,9 @@ my_data <- # Append summary in "my_data"
       names(x = my_data),
       "summary",
       "summary_relative",
-      "labels",
-      "label_env_sex",
-      "label_env_sport",
+      # "labels",
+      # "label_env_sex",
+      # "label_env_sport",
       "PCA",
       "PCA_summary"
     )
