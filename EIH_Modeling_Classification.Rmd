@@ -49,8 +49,6 @@ library(fs)
 library(CatEncoders)
 library(reticulate)
 library(dbscan)
-library(fpc)
-library(FCPS)
 library(shapviz)
 library(FactoMineR)
 library(psych)
@@ -58,6 +56,7 @@ library(kableExtra)
 library(purrr)
 library(stringi)
 library(tidyverse)
+library(missMDA)
 ```
 
 ```{r Scripts, message=FALSE, warning=FALSE, include=FALSE, paged.print=TRUE}

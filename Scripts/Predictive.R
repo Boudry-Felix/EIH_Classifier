@@ -1,5 +1,4 @@
 # Informations ------------------------------------------------------------
-
 # Title: lightGBM.R
 # Author: Félix Boudry
 # Contact: <felix.boudry@univ-perp.fr>
@@ -10,7 +9,7 @@
 
 ## Libraries --------------------------------------------------------------
 ## List of used libraries.
-require(dplyr)
+require(tidyverse)
 require(janitor)
 require(caret)
 require(gbm)
@@ -29,7 +28,7 @@ dir.create(path = paste0("./Output/Model_", my_date, "/")) # Create directory to
 
 # Select data ------------------------------------------------------------
 analysis_data <- # Put all data to analyze in a list
-  lst(my_data$summary, my_data$summary_relative, my_data$PCA_summary) %>%
+  lst(my_data$summaries$summary, my_data$summaries$relative_summary, my_data$summaries$PCA_summary) %>%
   `names<-`(c("absolute", "relative", "PCA"))
 
 # Analysis ----------------------------------------------------------------
