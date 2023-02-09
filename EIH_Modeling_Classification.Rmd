@@ -123,16 +123,16 @@ my_results$cluster_results_relative %>% walk(print)
 ## Predicitve
 
 ```{r}
-my_results$my_models_absolute$gbm_caret_model_results$gbm_caret_confusion$overall
-my_results$my_models_absolute$gbm_model_results$gbm_confusion$overall
-my_results$my_models_absolute$light_gbm_model_results$light_gbm_confusion$overall
-my_results$my_models_relative$gbm_caret_model_results$gbm_caret_confusion$overall
-my_results$my_models_relative$gbm_model_results$gbm_confusion$overall
-my_results$my_models_relative$light_gbm_model_results$light_gbm_confusion$overall
-my_results$my_models_PCA$light_gbm_model_results$light_gbm_confusion$overall
+my_results$my_models_absolute$gbm_caret_model_results$gbm_result$stat$overall
+my_results$my_models_absolute$gbm_model_results$gbm_result$stat$overall
+my_results$my_models_absolute$lgbm_model_results$lgbm_confusion$overall
+my_results$my_models_relative$gbm_caret_model_results$gbm_result$stat$overall
+my_results$my_models_relative$gbm_model_results$gbm_result$stat$overall
+my_results$my_models_relative$lgbm_model_results$lgbm_confusion$overall
+my_results$my_models_PCA$lgbm_model_results$lgbm_confusion$overall
 
 gbmParam <-
-  t(as.data.frame(my_results$my_models_absolute$light_gbm_model_results$light_gbm_params[c(
+  t(as.data.frame(my_results$my_models_absolute$lgbm_model_results$lgbm_model$params[c(
     "boosting",
     "lambda_l1",
     "lambda_l2",
