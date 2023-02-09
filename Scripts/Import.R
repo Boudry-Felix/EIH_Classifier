@@ -2,7 +2,7 @@
 # Title: Import.R
 # Author: Félix Boudry
 # Contact: <felix.boudry@univ-perp.fr>
-# License: Private
+# License: GPLv3
 # Description: Import the data needed to create a model of the EIH phenomenon.
 
 # Configuration -----------------------------------------------------------
@@ -14,7 +14,6 @@ require(readxl)
 require(data.table)
 require(janitor)
 require(fs)
-require(stringi)
 
 ## Global vectors ---------------------------------------------------------
 ## Define vectors used in entire script.
@@ -25,22 +24,24 @@ my_data_infos <-
 
 # Importation -------------------------------------------------------------
 # Import and structure the data that will be used in other scripts.
-studies_list <-
-  dir_info(path = "Data", recurse = FALSE) %>% # List directories
-  filter(type == "directory") %>%
-  "[["("path")
+studies_list <- dir_info(path = "Data", recurse = FALSE) %>%
+  filter(type == "directory")
+studies_list <- studies_list$path
 
 for (my_study in studies_list) {
-  file_list <-
-    # List all files in "my_study" directory
+  information_files_list <-
     dir_info(path = my_study, recurse = TRUE) %>%
-    filter(type == "file") %>%
-    "[["("path")
+    filter(type == "file")
+  information_files_list <- information_files_list$path
+  information_files_list <-
+    grep(pattern = ".csv",
+         x = information_files_list,
+         value = TRUE)
   subject_informations <-
     # Import subjects informations and clean column names
     fread(file = grep(
       pattern = ".*subject.*",
-      x = file_list,
+      x = information_files_list,
       value = TRUE
     )) %>%
     clean_names()
@@ -48,17 +49,29 @@ for (my_study in studies_list) {
     # Import test informations and clean column names
     fread(file = grep(
       pattern = ".*tests.*",
-      x = file_list,
+      x = information_files_list,
       value = TRUE
     )) %>%
     clean_names()
-  data_list <-
-    # Importing stress test data
+  data_infos <- subject_informations %>% # Merge informations
+    append(x = ., values = test_informations[1, ]) %>%
+    as.data.table()
+  files_list <- dir_info(my_study, recurse = TRUE) %>%
+    filter(type == "file")
+  files_list <- files_list$path
+  files_list <-
     grep(pattern = ".xlsx",
-         x = file_list,
-         value = TRUE) %>%
+         x = files_list,
+         value = TRUE)
+  # Importing data
+  my_study <-
+    gsub(pattern = "Data/",
+         replacement = "",
+         x = my_study)
+  my_list <-
     sapply(
-      FUN = read_excel,
+      files_list,
+      read_excel,
       .name_repair = "minimal",
       na = c("", " ", "NA"),
       col_type = "numeric",
@@ -66,32 +79,31 @@ for (my_study in studies_list) {
       USE.NAMES = TRUE
     ) %>%
     lapply(clean_names, sep_out = "")
-  data_infos <- subject_informations %>% # Merge informations
-    append(values = test_informations[1,])
-  my_data <- append(x = my_data, values = data_list)
+  my_data <- append(x = my_data, values = my_list)
   my_data_infos <- rbind(x = my_data_infos, values = data_infos)
+  # Remove variables not containing "my_data" & my_data_frame
+  rm(list = setdiff(ls(), c(lsf.str(), ls(pattern = "my_data|clean.*"))), my_data_frame)
 }
 
-names(x = my_data) <-
-  stri_replace_all_regex(
-    str = names(x = my_data),
-    pattern = c(".*/", ".xlsx"),
-    replacement = "",
-    vectorize_all = FALSE
-  )
-remove_names <-
-  setdiff(x = names(x = my_data), y = my_data_infos$subject) %>%
-  append(values = setdiff(x = my_data_infos$subject, y = names(x = my_data)))
-my_data <- my_data[names(x = my_data) %in% remove_names == FALSE]
+names(my_data) <-
+  gsub(pattern = "Data/.*/.*/",
+       replacement = "",
+       x = names(my_data)) %>%
+  gsub(pattern = ".xlsx",
+       replacement = "")
+remove_names <- setdiff(names(my_data), my_data_infos$subject) %>%
+  append(setdiff(my_data_infos$subject, names(my_data)))
+my_data <- my_data[names(my_data) %in% remove_names == FALSE]
 my_data_infos <-
   my_data_infos[my_data_infos$subject %in% remove_names == FALSE]
+# Remove variables not containing "my_data" & my_data_frame
+rm(list = setdiff(ls(), c(lsf.str(), ls(pattern = "my_data"))), my_data_frame)
 
 # Data structure ----------------------------------------------------------
 # Structure all data in a list
 my_data <- lst(my_data, my_data_infos) %>%
   `names<-`(c("all", "infos"))
-# Remove variables not containing "my_data" & my_data_frame
-rm(list = setdiff(x = ls(), y = c(lsf.str(), ls(pattern = "my_data$"))))
+rm(my_data_infos)
 
 # Export data -------------------------------------------------------------
 if (!dir.exists("./Environments")) {

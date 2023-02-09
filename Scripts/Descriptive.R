@@ -1,9 +1,8 @@
 # Informations ------------------------------------------------------------
-
 # Title: Descriptive_statistics.R
 # Author: Félix Boudry
 # Contact: <felix.boudry@univ-perp.fr>
-# License: Private
+# License: GPLv3
 # Description: Analyse the data to create descriptive models
 
 # Configuration -----------------------------------------------------------
@@ -11,10 +10,8 @@
 ## Libraries --------------------------------------------------------------
 ## List of used libraries.
 require(tidyverse)
-require(janitor)
 require(factoextra)
 require(clusplus)
-require(data.table)
 require(dbscan)
 
 # Environment -------------------------------------------------------------
@@ -36,10 +33,10 @@ antrop_data <- # Summarise descriptive values
         "saturation_end"
       )
     ),
-    # Use all columns selected
-    .fns = list(mean = mean, sd = sd),
-    # Apply functions
-    na.rm = TRUE
+    .fns = list(
+      \(x) mean = mean(x, na.rm = TRUE),
+      \(x) sd = sd(x, na.rm = TRUE)
+    )
   )) %>% as.data.frame() %>% round()
 
 # Clustering --------------------------------------------------------------
@@ -83,14 +80,9 @@ for (analysis_data in my_data$summaries) {
   kclust_coord <-
     lapply(X = kclust_data, FUN = plot_clus_coord, data = analysis_data) %>%
     `names<-`(value = cluster_number_names)
-  hclust_graph <- lapply(
-    X = cluster_number,
-    FUN = function(x) {
-      plot(hclust_data, cex = 0.6)
-      rect.hclust(tree = hclust_data, k = x)
-      recordPlot()
-    }
-  ) %>% `names<-`(value = cluster_number_names)
+  hclust_graph <- lapply(X = cluster_number,
+                         FUN = hcl_plot,
+                         input_data = hclust_data) %>% `names<-`(value = cluster_number_names)
   dbscan_graph <- fviz_cluster(dbscan_data,
                                analysis_data_scaled,
                                geom = "point")
@@ -110,8 +102,8 @@ for (analysis_data in my_data$summaries) {
         lapply(X = cluster_number, function(x)
           cutree(tree = hclust_data, k = x)) %>%
           `names<-`(paste0("hclust_", cluster_number)),
-        eih = my_data$summaries$summary[rownames(analysis_data), "eih"],
-        eih_severity = my_data$summaries$summary[rownames(analysis_data), "eih_severity"]
+        eih = my_data$summaries$absolute[rownames(analysis_data), "eih"],
+        eih_severity = my_data$summaries$absolute[rownames(analysis_data), "eih_severity"]
       )
     )
 
@@ -160,7 +152,10 @@ for (analysis_data in my_data$summaries) {
     ) %>% `names<-`(value = cluster_columns)
 
   ## Cluster data Structure -----------------------------------------------
-  kclust <- lst(data = kclust_data, coord = kclust_coord, graph = kclust_graph)
+  kclust <-
+    lst(data = kclust_data,
+        coord = kclust_coord,
+        graph = kclust_graph)
   hclust <- lst(data = hclust_data, graph = hclust_graph)
   dbscan_clust <- lst(data = dbscan_data, graph = dbscan_graph)
   optics_clust <- lst(data = optics_data, graph = optics_graph)
