@@ -1,20 +1,18 @@
 # Informations ------------------------------------------------------------
-
 # Title: Import.R
 # Author: Félix Boudry
 # Contact: <felix.boudry@univ-perp.fr>
-# License: Private
+# License: GPLv3
 # Description: Import the data needed to create a model of the EIH phenomenon.
 
 # Configuration -----------------------------------------------------------
 
 ## Libraries --------------------------------------------------------------
 ## List of used libraries.
+require(tidyverse)
 require(readxl)
-require(dplyr)
 require(data.table)
 require(janitor)
-require(tibble)
 require(fs)
 
 ## Global vectors ---------------------------------------------------------

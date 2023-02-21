@@ -1,326 +1,212 @@
 # Informations ------------------------------------------------------------
-
 # Title: lightGBM.R
 # Author: Félix Boudry
 # Contact: <felix.boudry@univ-perp.fr>
-# License: Private
+# License: GPLv3
 # Description: Analyse the data to create predictive models
 
 # Configuration -----------------------------------------------------------
 
 ## Libraries --------------------------------------------------------------
 ## List of used libraries.
-require(dplyr)
-require(janitor)
+require(tidyverse)
 require(caret)
 require(gbm)
 require(lightgbm)
 require(reticulate)
+require(shapviz)
+require(DiagrammeR)
 
 # Environment -------------------------------------------------------------
 # Define vectors used in entire script.
 rm(list = setdiff(x = ls(), y = lsf.str())) # Clean environment
 load(file = "./Environments/descriptive.RData") # Load environment
-my_date <- format(Sys.time(), "%d-%m-%Y_%H.%M")
+my_date <- format(Sys.time(), "%Y-%m-%d_%H.%M")
 if (!dir.exists("./Output")) {
   dir.create("./Output")
 }
-dir.create(path = paste0("./Output/Model_", my_date, "/")) # Create directory to store results
-
-# Select data ------------------------------------------------------------
-analysis_data <- # Put all data to analyze in a list
-  lst(my_data$summary, my_data$summary_relative, my_data$PCA_summary) %>%
-  `names<-`(c("absolute", "relative", "PCA"))
+if (!dir.exists("./Params")) {
+  # Create directory to store results
+  dir.create(path = paste0("./Output/Model_", my_date, "/"))
+}
 
 # Analysis ----------------------------------------------------------------
 # source(file = "./Scripts/LGBM_rounds_tune.R") # Compute optimal nrounds
-my_counter <- 1
-for (my_analysis_data in analysis_data) {
-  # Setting general variables
-  my_analysis_data <-
-    merge(x = my_analysis_data,
-          y = my_data$labels[c("eih", "subject")],
-          by = "subject") %>%
-    select(.data = ., -c("subject"))
+for (name_seq in names(my_data$summaries)) {
+  gbm_data <-
+    merge(
+      x = select_if(.tbl = my_data$summaries[[name_seq]], .predicate = is.numeric),
+      y = my_data$encoded_summaries$absolute[[2]]["eih"] - 1,
+      by = "row.names"
+    ) %>%
+    select(.data = ., -any_of(
+      c(
+        "Row.names",
+        "saturation_rest",
+        "saturation_end",
+        "saturation_delta"
+      )
+    )) %>%
+    gbm_data_partition(sep_col = "eih",
+                       sep_prop = 0.65)
 
   ## GBM analysis -----------------------------------------------------------
   ## Analysis using a classical GBM model
-
-  ### Shape data ------------------------------------------------------------
-  gbm_split_indexes <- # Separate data in two using p
-    createDataPartition(y = my_analysis_data$eih, p = 0.65, list = FALSE)
-  gbm_train_data <- # Create a train data set
-    my_analysis_data[gbm_split_indexes, ]
-  gbm_test_data <- # Create a test data set
-    my_analysis_data[-gbm_split_indexes, ]
-
-  gbm_train_data$eih <- # Factorize EIH column
-    as.numeric(x = as.factor(x = gbm_train_data$eih))
-
-  ### Train model -----------------------------------------------------------
   gbm_model <- # Train a GBM model
     gbm(
       formula = eih ~ .,
-      distribution = "tdist",
-      data = gbm_train_data,
-      var.monotone = NULL,
-      n.trees = 140,
+      distribution = "bernoulli",
+      data = gbm_data$train_data,
+      n.trees = 3500,
       interaction.depth = 2,
       n.minobsinnode = 3,
       shrinkage = 0.01,
       bag.fraction = 0.9,
-      train.fraction = 1,
       cv.folds = 2,
-      keep.data = TRUE,
-      verbose = TRUE,
       class.stratify.cv = NULL,
-      n.cores = NULL
+    )
+  gbm_result <- # Compute results
+    gbm_pred(
+      input_model = gbm_model,
+      input_data = gbm_data,
+      predicted_var = "eih",
+      threshold = 0.5
     )
 
-  gbm_ntree_optimal_oob <-
-    gbm.perf(object = gbm_model, method = "OOB") # Compute optimal tree number
-  gbm_ntree_optimal_cv <-
-    gbm.perf(object = gbm_model, method = "cv") # Compute optimal tree number
+  gbm_model_results <-
+    lst(gbm_model, gbm_result)
 
-  print(x = gbm_ntree_optimal_oob)
-  print(x = gbm_ntree_optimal_cv)
-
-  print(x = gbm_model)
-  gbm_importance = summary(object = gbm_model, las = 1)
-  gbm_importance_plot = summary.gbm(gbm_model, plotit = TRUE) %>% recordPlot()
-
-  ### Test model ------------------------------------------------------------
-  gbm_prediction <-
-    predict(
-      # Test model by making prediction on test data set
-      object = gbm_model,
-      newdata = gbm_test_data,
-      n.trees = gbm_ntree_optimal_oob,
-      type = "response"
-    )
-
-  gbm_prediction_binaries <-
-    as.factor(x = ifelse(
-      test = gbm_prediction > 1.7,
-      yes = 2,
-      no = 1
-    ))
-  gbm_eih_binaries <-
-    as.factor(x = as.numeric(x = as.factor(x = gbm_test_data$eih)))
-  gbm_confusion <-
-    confusionMatrix(gbm_prediction_binaries, gbm_eih_binaries)
-
-  gbm_model_results <- sapply(
-    # Put results in a list
-    X = ls(pattern = ".*gbm.*"),
-    FUN = get,
-    simplify = FALSE,
-    USE.NAMES = TRUE
-  )
-
-  ## GBM (caret) analysis ---------------------------------------------------
-
-  ### Shape data ------------------------------------------------------------
-  gbm_caret_split_indexes <- # Separate data in two using p
-    createDataPartition(y = my_analysis_data$eih, p = 0.65, list = FALSE)
-  gbm_caret_train_data <- # Create a train data set
-    my_analysis_data[gbm_caret_split_indexes, ]
-  gbm_caret_test_data <- # Create a test data set
-    my_analysis_data[-gbm_caret_split_indexes, ]
-
-  gbm_caret_train_data$eih <- # Factorize EIH column
-    as.numeric(x = as.factor(x = gbm_caret_train_data$eih))
-
-  gbm_caret_train_data <- na.omit(gbm_caret_train_data)
-  gbm_caret_test_data <- na.omit(gbm_caret_test_data)
-
-  ### Train model -----------------------------------------------------------
-  gbm_caret_param_grid <- expand.grid(
+  ## GBM caret analysis -----------------------------------------------------
+  param_grid <- expand.grid(
+    # Define parameter grid
     n.trees = seq(100, 1000, by = 50),
     interaction.depth = seq(1, 7, by = 1),
     n.minobsinnode = 3,
     shrinkage = c(0.001, 0.01, 0.1)
   )
-
-  gbm_caret_model <- train(
+  gbm_model <- train(
+    # Train GBM model with grid parameters
     as.factor(eih) ~ .,
-    data = gbm_caret_train_data,
+    data = gbm_data$train_data,
     method = "gbm",
     distribution = "bernoulli",
-    tuneGrid = gbm_caret_param_grid,
+    tuneGrid = param_grid,
     trControl = trainControl(
       method = "cv",
       number = 2,
       returnResamp = "all"
+    ),
+    na.action = na.pass
+  )
+  gbm_result <- # Compute GBM results
+    gbm_pred(
+      input_model = gbm_model,
+      input_data = gbm_data,
+      predicted_var = "eih"
     )
-  )
-  gbm_caret_importance = summary(object = gbm_caret_model, las = 1)
 
-  ### Test model ------------------------------------------------------------
-  gbm_caret_prediction <-
-    predict(# Test model by making prediction on test data set
-      object = gbm_caret_model,
-      newdata = gbm_caret_test_data)
-
-  gbm_caret_prediction_binaries <- gbm_caret_prediction
-  gbm_caret_eih_binaries <-
-    as.factor(x = as.numeric(x = as.factor(x = gbm_caret_test_data$eih)))
-  gbm_caret_confusion <-
-    confusionMatrix(gbm_caret_prediction_binaries, gbm_caret_eih_binaries)
-
-  gbm_caret_model_results <- sapply(
-    # Put results in a list
-    X = ls(pattern = ".*gbm_caret.*"),
-    FUN = get,
-    simplify = FALSE,
-    USE.NAMES = TRUE
-  )
+  gbm_caret_model_results <-
+    lst(gbm_model, gbm_result)
 
   ## Light GBM analysis -----------------------------------------------------
-  ## Analysis using lightGBM algorithm
+  lgbm_train_data <-
+    split.default(x = gbm_data$train_data,
+                  f = names(gbm_data$train_data) == "eih") %>%
+    `names<-`(value = c("values", "label"))
+  lgbm_dtrain <-
+    lgb.Dataset(data = lgbm_train_data[["values"]] %>% as.matrix(),
+                label = lgbm_train_data[["label"]] %>% as.matrix())
 
-  ### Shape data ------------------------------------------------------------
-  light_gbm_split_indexes <- # Separate data in two using p
-    createDataPartition(y = my_analysis_data$eih, p = 0.70, list = FALSE)
-  light_gbm_train_data <-
-    # Create a train data set and remove unused data
-    my_analysis_data[light_gbm_split_indexes, ]
-  light_gbm_test_data <-
-    # Create a test data set and remove unused data
-    my_analysis_data[-light_gbm_split_indexes, ]
-
-  light_gbm_train_data_label <-
-    light_gbm_train_data %>% # Create training labels
-    select("eih")
-  light_gbm_train_data <-
-    light_gbm_train_data %>% # Create training data frame
-    select(-c("eih")) %>%
-    lapply(X = ., FUN = as.numeric) %>%
-    as.data.frame(x = .)
-  light_gbm_train_data_label$eih <-
-    as.numeric(x = as.factor(x = light_gbm_train_data_label$eih)) - 1 # Transform label as factors
-
-  light_gbm_test_data_label <-
-    light_gbm_test_data %>% # Create training labels
-    select("eih")
-  light_gbm_test_data <-
-    light_gbm_test_data %>% # Create testing data frame
-    select(-c("eih")) %>%
-    lapply(X = ., FUN = as.numeric) %>%
-    as.data.frame(x = .)
-  light_gbm_test_data_label$eih <-
-    as.numeric(x = as.factor(x = light_gbm_test_data_label$eih)) - 1 # Transform label as factors
-
-  light_gbm_dtrain <- # Create training dataset used by lightGBM
-    lgb.Dataset(
-      data = as.matrix(x = light_gbm_train_data),
-      label = as.matrix(x = light_gbm_train_data_label)
-    )
-  light_gbm_dtest <- # Create testing dataset used by lightGBM
-    lgb.Dataset.create.valid(
-      dataset = light_gbm_dtrain,
-      data = as.matrix(x = light_gbm_test_data),
-      label = as.matrix(x = light_gbm_test_data_label)
-    )
+  lgbm_test_data <-
+    split.default(x = gbm_data$test_data,
+                  f = names(gbm_data$test_data) == "eih") %>%
+    `names<-`(value = c("values", "label"))
+  lgbm_dtest <- lgb.Dataset.create.valid(
+    dataset = lgbm_dtrain,
+    data = lgbm_test_data[["values"]] %>% as.matrix(),
+    label = lgbm_test_data[["label"]] %>% as.matrix()
+  )
 
   ### Configure -------------------------------------------------------------
   if (dir.exists("./Params")) {
-    my_config <- paste0("Params/Best_params", my_counter, ".rds")
+    my_config <- paste0("Params/Best_params_", name_seq, ".rds")
     my_params <- readRDS(file = my_config)
   } else {
-    source_python("./Scripts/LGBM_optuna_tune.py")
-    my_params <- study$best_params
+    source_python("./Scripts/Optuna_tune.py")
+    my_params <- study$best_params %>%
+      lapply(FUN = gsub, pattern = ",", replacement = ".")
   }
 
-  light_gbm_params <- c(list(
+  lgbm_params <- c(list(
     # Define parameters for lightGBM training
     objective = 'binary',
     boosting = "dart",
     metric = "binary_logloss"
   ),
   my_params)
-
-  light_gbm_valids <-
-    list(test = light_gbm_dtest) # Create a valid (reference) dataset
+  lgbm_valids <-
+    list(test = lgbm_dtest) # Create a valid (reference) data set
+  optimal_rounds <-
+    lgbm_round_tune(
+      my_rounds = seq(300, 1500, by = 100),
+      lgbm_params = lgbm_params,
+      lgbm_dtrain = lgbm_dtrain,
+      lgbm_valids = lgbm_valids,
+      lgbm_test_data = lgbm_test_data$values,
+      lgbm_test_data_label = lgbm_test_data$label
+    )
 
   ### Train model -----------------------------------------------------------
-  light_gbm_model <- lgb.train(
+  lgbm_model <- lgb.train(
     # Train model
-    params = light_gbm_params,
-    data = light_gbm_dtrain,
+    params = lgbm_params,
+    data = lgbm_dtrain,
     nrounds = 300L,
-    valids = light_gbm_valids
+    valids = lgbm_valids
   )
 
   ### Test model ------------------------------------------------------------
-  light_gbm_test_data <- as.matrix(x = light_gbm_test_data)
-  light_gbm_pred <-
-    predict(object = light_gbm_model, light_gbm_test_data, reshape = TRUE)
-  if (my_counter == 1) {
-    light_gbm_pred_y = ifelse(light_gbm_pred > 0.5, 1, 0)
-  } else if (my_counter == 2) {
-    light_gbm_pred_y = ifelse(light_gbm_pred > 0.5, 1, 0)
-  } else {
-    light_gbm_pred_y = ifelse(light_gbm_pred > 0.505, 1, 0)
-  }
+  lgbm_test_data_pred <- as.matrix(x = lgbm_test_data$values)
+  lgbm_pred <-
+    predict(object = lgbm_model, lgbm_test_data_pred, reshape = TRUE)
+  lgbm_pred_y = ifelse(lgbm_pred > 0.5, 1, 0)
 
-
-  light_gbm_confusion <-
-    confusionMatrix(as.factor(x = light_gbm_test_data_label$eih),
-                    as.factor(x = light_gbm_pred_y))
+  lgbm_confusion <-
+    confusionMatrix(as.factor(x = lgbm_test_data$label[["eih"]]),
+                    as.factor(x = lgbm_pred_y))
 
   ### Plotting --------------------------------------------------------------
   ### Feature importance
-  light_gbm_tree_imp = lgb.importance(light_gbm_model, percentage = TRUE)
-  light_gbm_importance_plot <-
-    lgb.plot.importance(light_gbm_tree_imp, measure = "Gain", top_n = 10)
-  light_gbm_importance_plot_multi <-
-    lgb.plot.interpretation(light_gbm_importance_plot)
+  lgbm_importance = lgb.importance(lgbm_model, percentage = TRUE)
+  lgbm_importance_plot <-
+    lgb.plot.importance(lgbm_importance, measure = "Gain", top_n = 10)
+  lgbm_importance_plot_multi <-
+    lgb.plot.interpretation(lgbm_importance_plot)
+  lgbm_plot <-
+    lgbm_plots(lgbm_model = lgbm_model, lgbm_test_data_pred = lgbm_test_data_pred)
 
-  light_gbm_model_results <- sapply(
-    # Put results in a list
-    X = ls(pattern = ".*light_gbm.*"),
-    FUN = get,
-    simplify = FALSE,
-    USE.NAMES = TRUE
-  )
+  lgbm_model_results <-
+    lst(
+      lgbm_model,
+      lgbm_confusion,
+      lgbm_importance_plot,
+      lgbm_importance_plot_multi,
+      lgbm_plot,
+      optimal_rounds
+    )
 
   # Data structure ----------------------------------------------------------
   if (!dir.exists("./Params")) {
-    saveRDS(
-      object = as.list(study$best_params),
-      file = paste0(
-        "Output/Model_",
-        my_date,
-        "/Best_params",
-        my_counter,
-        ".rds"
-      )
-    )
-    saveRDS(
-      object = light_gbm_model_results,
-      file = paste0(
-        "Output/Model_",
-        my_date,
-        "/LightGBM_model",
-        my_counter,
-        ".rds"
-      )
-    )
-    saveRDS(
-      object = study,
-      file = paste0(
-        "Output/Model_",
-        my_date,
-        "/Optune_study",
-        my_counter,
-        ".rds"
-      )
+    lgbm_export(
+      study = study,
+      my_date = my_date,
+      name_seq = name_seq,
+      lgbm_model_results = lgbm_model_results
     )
   }
 
   assign(
-    paste0("my_models_", names(analysis_data[my_counter])),
+    paste0("my_models_", name_seq),
     sapply(
       # Put results in a list
       X = ls(pattern = ".*model_results"),
@@ -329,11 +215,6 @@ for (my_analysis_data in analysis_data) {
       USE.NAMES = TRUE
     )
   )
-  my_counter <- my_counter + 1
-  rm(list = setdiff(
-    x = ls(),
-    y = c(lsf.str(), ls(pattern = "my_data|my_results|my_models.*|my_counter|analysis_data|my_date"))
-  ))
 }
 
 my_results <- append(x = my_results,
@@ -344,11 +225,10 @@ my_results <- append(x = my_results,
                        USE.NAMES = TRUE
                      ))
 
-# Advanced plotting -------------------------------------------------------
-source(file = "./Scripts/Visualization.R", echo = TRUE)
-
 # Remove temporary variables
-rm(list = setdiff(x = ls(), y = c(lsf.str(), ls(pattern = "my_data|my_results"))))
+rm(list = setdiff(x = ls(), y = c(
+  lsf.str(), ls(pattern = "my_data|my_results")
+)))
 
 # Export data -------------------------------------------------------------
 # Save environment to avoid recomputing

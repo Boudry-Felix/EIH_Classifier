@@ -7,10 +7,10 @@ from sklearn.preprocessing import LabelEncoder
 import lightgbm as lgb
 
 def objective(trial):
-    train_x = pd.DataFrame(r.light_gbm_train_data)
-    train_y = np.array(r.light_gbm_train_data_label)
-    test_x = pd.DataFrame(r.light_gbm_test_data)
-    test_y = np.array(r.light_gbm_test_data_label)
+    train_x = pd.DataFrame(r.lgbm_train_data["values"])
+    train_y = np.array(r.lgbm_train_data["label"])
+    test_x = pd.DataFrame(r.lgbm_test_data["values"])
+    test_y = np.array(r.lgbm_test_data["label"])
     dtrain = lgb.Dataset(train_x, label=train_y)
  
     param = {
