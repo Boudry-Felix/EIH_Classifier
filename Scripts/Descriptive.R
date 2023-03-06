@@ -44,7 +44,15 @@ antrop_data <- # Summarise descriptive values
 my_counter <- 1
 for (analysis_data in my_data$summaries) {
   analysis_data <- # Clean and select usable data
-    analysis_data %>% as.data.frame() %>% select_if(is.numeric) %>% na.omit()
+    analysis_data %>%
+    as.data.frame() %>%
+    select_if(is.numeric) %>%
+    na.omit() %>%
+    select(.data = ., -any_of(c(
+      "saturation_rest",
+      "saturation_end",
+      "saturation_delta"
+    )))
   ## Scale data--------------------------------------------------------------
   analysis_data_scaled <-
     scale(x = analysis_data) %>% as.data.frame()
@@ -87,7 +95,7 @@ for (analysis_data in my_data$summaries) {
                                analysis_data_scaled,
                                geom = "point")
   optics_graph <-
-    extractXi(object = optics_data, xi = 0.02) %>% plot()
+    extractXi(object = optics_data, xi = 0.02) %>% plot() %>% recordPlot()
 
   ## Boxplots ---------------------------------------------------------------
   ## Boxplot per cluster (absolute data)
@@ -156,7 +164,7 @@ for (analysis_data in my_data$summaries) {
     lst(data = kclust_data,
         coord = kclust_coord,
         graph = kclust_graph)
-  hclust <- lst(data = hclust_data, graph = hclust_graph)
+  hclust <- lst(data = hclust_data, hclust_graph)
   dbscan_clust <- lst(data = dbscan_data, graph = dbscan_graph)
   optics_clust <- lst(data = optics_data, graph = optics_graph)
 

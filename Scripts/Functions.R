@@ -6,9 +6,9 @@
 # Description: Functions used for this project
 
 # Libraries ---------------------------------------------------------------
-# require(kableExtra)
-# require(grDevices)
-# require(CatEncoders)
+require(kableExtra)
+require(grDevices)
+require(CatEncoders)
 
 
 # Formats -----------------------------------------------------------------
@@ -198,7 +198,10 @@ lgbm_round_tune <-
         rbind(optimal_rounds_result,
               c(test_rounds, lgbm_confusion$overall[[1]]))
     }
-    return(optimal_rounds_result)
+    colnames(optimal_rounds_result) <- c("rounds", "results")
+    best_round <- which.max(optimal_rounds_result[["results"]])
+    best_round <- optimal_rounds_result[["rounds"]][best_round]
+    return(lst(optimal_rounds_result, best_round))
   }
 
 gbm_pred <-

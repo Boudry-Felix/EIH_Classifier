@@ -134,7 +134,9 @@ for (name_seq in names(my_data$summaries)) {
   } else {
     source_python("./Scripts/Optuna_tune.py")
     my_params <- study$best_params %>%
-      lapply(FUN = gsub, pattern = ",", replacement = ".")
+      lapply(FUN = gsub,
+             pattern = ",",
+             replacement = ".")
   }
 
   lgbm_params <- c(list(
@@ -161,7 +163,7 @@ for (name_seq in names(my_data$summaries)) {
     # Train model
     params = lgbm_params,
     data = lgbm_dtrain,
-    nrounds = 300L,
+    nrounds = optimal_rounds$best_round,
     valids = lgbm_valids
   )
 
