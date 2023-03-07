@@ -141,14 +141,6 @@ my_results$cluster_results_absolute$boxplots %>%
     top = NULL
   ) %>%
   walk(print)
-my_results$cluster_results_absolute$eih_repartition %>%
-  lapply("[[", "eih") %>%
-  lapply(as.grob) %>%
-  marrangeGrob(ncol = 2, nrow = 2, top = NULL)
-my_results$cluster_results_absolute$eih_severity_repartition %>%
-  lapply("[[", "eih_severity") %>%
-  lapply(as.grob) %>%
-  marrangeGrob(ncol = 2, nrow = 2, top = NULL)
 ```
 
 ### Relative
@@ -173,14 +165,6 @@ my_results$cluster_results_relative$boxplots %>%
     top = NULL
   ) %>%
   walk(print)
-my_results$cluster_results_relative$eih_repartition %>%
-  lapply("[[", "eih") %>%
-  lapply(as.grob) %>%
-  marrangeGrob(ncol = 2, nrow = 2, top = NULL)
-my_results$cluster_results_relative$eih_severity_repartition %>%
-  lapply("[[", "eih_severity") %>%
-  lapply(as.grob) %>%
-  marrangeGrob(ncol = 2, nrow = 2, top = NULL)
 ```
 
 ### PCA based
@@ -205,14 +189,6 @@ my_results$cluster_results_PCA$boxplots %>%
     top = NULL
   ) %>%
   walk(print)
-my_results$cluster_results_PCA$eih_repartition %>%
-  lapply("[[", "eih") %>%
-  lapply(as.grob) %>%
-  marrangeGrob(ncol = 2, nrow = 2, top = NULL)
-my_results$cluster_results_PCA$eih_severity_repartition %>%
-  lapply("[[", "eih_severity") %>%
-  lapply(as.grob) %>%
-  marrangeGrob(ncol = 2, nrow = 2, top = NULL)
 ```
 
 ## Predicitve
