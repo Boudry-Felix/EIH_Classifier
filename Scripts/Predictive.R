@@ -169,7 +169,7 @@ for (name_seq in names(my_data$summaries)) {
 
   lgbm_confusion <-
     confusionMatrix(as.factor(x = lgbm_test_data$label[["eih"]]),
-                    as.factor(x = lgbm_pred_y))
+                    as.factor(x = lgbm_pred_y), mode = "everything")
 
   ### Plotting --------------------------------------------------------------
   ### Feature importance

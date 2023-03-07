@@ -229,7 +229,7 @@ gbm_pred <-
     gbm_predicted <-
       as.factor(x = input_data[["test_data"]][[predicted_var]])
     gbm_confusion <-
-      confusionMatrix(gbm_prediction, gbm_predicted)
+      confusionMatrix(gbm_prediction, gbm_predicted, mode = "everything")
     return(lst(stat = gbm_confusion, importance, importance_plot))
   }
 
