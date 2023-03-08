@@ -43,7 +43,7 @@ antrop_data <- # Summarise descriptive values
 # Clustering --------------------------------------------------------------
 # Compute and plot clusters
 my_counter <- 1
-for (analysis_data in my_data$summaries) {
+for (analysis_data in lapply(my_data$encoded_summaries, "[[", "encoded_data")) {
   analysis_data <- # Clean and select usable data
     analysis_data %>%
     as.data.frame() %>%
@@ -70,9 +70,41 @@ for (analysis_data in my_data$summaries) {
     list("two", "four")
 
   kclust_data <-
-    compute_kclust(input = analysis_data_scaled, cluster_number = cluster_number)
-  hclust_data <-
-    dist(x = analysis_data_scaled) %>% hclust(method = "ward.D2")
+    lapply(cluster_number,
+           \(x)
+           eclust(
+             analysis_data,
+             k = x,
+             FUNcluster = "kmeans",
+             graph = FALSE
+           )) %>%
+    `names<-`(value = cluster_number_names)
+  hclust_bu_data <-
+    lapply(
+      cluster_number,
+      \(x)
+      eclust(
+        analysis_data,
+        k = x,
+        FUNcluster = "hclust",
+        hc_method = "ward.D2",
+        graph = FALSE
+      )
+    ) %>%
+    `names<-`(value = cluster_number_names)
+  hclust_td_data <-
+    lapply(
+      cluster_number,
+      \(x)
+      eclust(
+        analysis_data,
+        k = x,
+        FUNcluster = "diana",
+        hc_method = "ward.D2",
+        graph = FALSE
+      )
+    ) %>%
+    `names<-`(value = cluster_number_names)
   dbscan_data <-
     dbscan(x = analysis_data_scaled,
            eps = 3,
@@ -85,86 +117,83 @@ for (analysis_data in my_data$summaries) {
   ## Plotting ---------------------------------------------------------------
   kclust_graph <-
     lapply(
-      X = kclust_data,
-      FUN = function(my_object) {
-        # create a ggplot object
-        my_plot <- fviz_cluster(
-          object = my_object,
-          data = analysis_data,
-          geom = NULL,
-          show.clust.cent = FALSE
-        ) + {
-          if (length(unique(my_object[["cluster"]])) == 2)
-            geom_point(aes(shape = my_data$infos$eih[rownames(analysis_data) %>% as.numeric()]))
-        } +
+      kclust_data,
+      FUN = function(x) {
+        fviz_cluster(object = x,
+                     geom = NULL,
+                     show.clust.cent = FALSE) +
           {
-            if (length(unique(my_object[["cluster"]])) == 4)
-              geom_point(aes(shape = my_data$infos$eih_severity[rownames(analysis_data) %>% as.numeric()]))
+            if (length(unique(x[["cluster"]])) == 2)
+              geom_point(aes(shape = my_data$infos$eih[my_data$keeped_rows %>% as.numeric()]))
           } +
-          scale_shape_manual(values = c(1, 4, 6, 9)) +
+          {
+            if (length(unique(x[["cluster"]])) == 4)
+              geom_point(aes(shape = my_data$infos$eih[my_data$keeped_rows %>% as.numeric()]))
+          } +
           labs(shape = "Status")
-
-        plot_data <- ggplot_build(my_plot)
-        plot_grob <- ggplot_gtable(plot_data) %>% grid::grid.draw()
-        plot_grob <- recordPlot()
-        return(plot_grob)
       }
     ) %>%
     `names<-`(value = cluster_number_names)
-
   kclust_coord <-
     lapply(X = kclust_data, FUN = plot_clus_coord, data = analysis_data) %>%
     `names<-`(value = cluster_number_names)
-  hclust_graph <- lapply(X = cluster_number,
-                         FUN = hcl_plot,
-                         input_data = hclust_data) %>% `names<-`(value = cluster_number_names)
+  hclust_bu_graph <- lapply(
+    X = hclust_bu_data,
+    FUN = function(x) {
+      if (length(unique(x[["cluster"]])) == 2)
+      {
+        my_label_cols <-
+          my_data$infos$eih[my_data$keeped_rows %>% as.numeric()] %>% as.factor() %>% as.numeric()
+      }
+      else if (length(unique(x[["cluster"]])) == 4)
+      {
+        my_label_cols <-
+          my_data$infos$eih_severity[my_data$keeped_rows %>% as.numeric()] %>% as.factor() %>% as.numeric()
+      }
+      fviz_dend(x = x,
+                cex = 0.5,
+                label_cols = my_label_cols,
+                horiz = TRUE)
+    }
+  ) %>%
+    `names<-`(value = cluster_number_names)
+  hclust_td_graph <- lapply(
+    X = hclust_td_data,
+    FUN = function(x) {
+      if (length(unique(x[["cluster"]])) == 2)
+      {
+        my_label_cols <-
+          my_data$infos$eih[my_data$keeped_rows %>% as.numeric()] %>% as.factor() %>% as.numeric()
+      }
+      else if (length(unique(x[["cluster"]])) == 4)
+      {
+        my_label_cols <-
+          my_data$infos$eih_severity[my_data$keeped_rows %>% as.numeric()] %>% as.factor() %>% as.numeric()
+      }
+      fviz_dend(x = x,
+                cex = 0.5,
+                label_cols = my_label_cols,
+                horiz = TRUE)
+    }
+  ) %>%
+    `names<-`(value = cluster_number_names)
   dbscan_graph <- fviz_cluster(dbscan_data,
                                analysis_data_scaled,
-                               geom = "point")
+                               geom = "point",
+                               show.clust.cent = FALSE)
   optics_graph <-
-    extractXi(object = optics_data, xi = 0.02) %>% plot() %>% recordPlot()
-
-  ## Boxplots ---------------------------------------------------------------
-  ## Boxplot per cluster (absolute data)
-
-  ## Adding cluster group to data
-  plot_df <-
-    do.call(
-      "cbind",
-      list(
-        analysis_data,
-        lapply(X = kclust_data, FUN = "[[", "cluster"),
-        lapply(X = cluster_number, function(x)
-          cutree(tree = hclust_data, k = x)) %>%
-          `names<-`(paste0("hclust_", cluster_number)),
-        eih = my_data$summaries$absolute[rownames(analysis_data), "eih"],
-        eih_severity = my_data$summaries$absolute[rownames(analysis_data), "eih_severity"]
-      )
-    )
-
-  ## Creating boxplots
-  cluster_columns <- # Select cluster columns
-    colnames(x = plot_df[grepl(pattern = "clust", x = colnames(plot_df))])
-
-  # Plotting boxplots for each variable in each cluster
-  cluster_boxplots <- lapply(
-    X = cluster_columns,
-    FUN = \(my_col)
-    sapply(
-      X = colnames(plot_df),
-      FUN = boxplots_by_clust,
-      cluster_col = my_col,
-      simplify = FALSE,
-      USE.NAMES = TRUE
-    )
-  ) %>% `names<-`(value = cluster_columns)
+    extractXi(object = optics_data, xi = 0.02) %>% plot()
+  optics_graph <- recordPlot()
 
   ## Cluster data Structure -----------------------------------------------
   kclust <-
     lst(data = kclust_data,
         coord = kclust_coord,
         graph = kclust_graph)
-  hclust <- lst(data = hclust_data, hclust_graph)
+  hclust_bu <-
+    lst(data = hclust_bu_data, graph = hclust_bu_graph)
+  hclust_td <-
+    lst(data = hclust_td_data, graph = hclust_td_graph)
   dbscan_clust <- lst(data = dbscan_data, graph = dbscan_graph)
   optics_clust <- lst(data = optics_data, graph = optics_graph)
 
@@ -173,10 +202,10 @@ for (analysis_data in my_data$summaries) {
     value = lst(
       cluster_number_graph,
       kclust,
-      hclust,
+      hclust_bu,
+      hclust_td,
       dbscan = dbscan_clust,
-      optics = optics_clust,
-      boxplots = cluster_boxplots
+      optics = optics_clust
     )
   )
   my_counter <- my_counter + 1

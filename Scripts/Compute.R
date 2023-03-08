@@ -61,16 +61,23 @@ my_summary <- mapply(
   t() %>%
   as.data.frame() %>%
   unnest(cols = colnames(x = .)) %>%
-  merge(y = my_data$infos, by = "subject", all = TRUE)
+  merge(y = my_data$infos, by = "subject", all = TRUE) %>%
+  select(-any_of(c("train_years", "data_type", "type", "environment", "intensity")))
 
 # Summary relative --------------------------------------------------------
 # Transform mean and min columns to relatives max values
 my_summary_relative <- my_summary %>% # Copy summary
   compute_relative()
 
+keeped_rows <- my_summary %>%
+  as.data.frame() %>%
+  select_if(is.numeric) %>%
+  na.omit() %>%
+  rownames()
+
 # PCA ---------------------------------------------------------------------
 # Compute a PCA summary for analyzed data
-PCA_summary <- lapply(my_data$all, imputePCA) %>%
+PCA_summary <- lapply(my_data$all[keeped_rows %>% as.numeric()], imputePCA) %>%
   lapply(FUN = as.data.frame) %>%
   lapply(FUN = select, contains(my_colnames)) %>%
   lapply(FUN = PCA, graph = FALSE) %>%
@@ -93,7 +100,7 @@ encoded_summaries <- lapply(X = my_summaries, FUN = df_encode)
 # Structuring data in vectors
 my_data <- # Append summary in "my_data"
   append(x = my_data,
-         values = lst(summaries = my_summaries, encoded_summaries))
+         values = lst(summaries = my_summaries, encoded_summaries, keeped_rows))
 
 # Remove variables not containing "my_data" & my_data_frame
 rm(list = setdiff(x = ls(), y = c(lsf.str(), ls(pattern = "my_data"))))
