@@ -176,100 +176,90 @@ my_results$cluster_results_PCA$optics$graph
 ## Predicitve
 
 ```{r}
-# my_results$my_models_absolute$gbm_caret_model_results$gbm_result$stat$overall
-# my_results$my_models_absolute$gbm_model_results$gbm_result$stat$overall
-# my_results$my_models_absolute$lgbm_model_results$lgbm_confusion$overall
-# my_results$my_models_relative$gbm_caret_model_results$gbm_result$stat$overall
-# my_results$my_models_relative$gbm_model_results$gbm_result$stat$overall
-# my_results$my_models_relative$lgbm_model_results$lgbm_confusion$overall
-# my_results$my_models_PCA$lgbm_model_results$lgbm_confusion$overall
+my_results$my_models_absolute$lgbm_model_results$lgbm_confusion$overall
+my_results$my_models_relative$lgbm_model_results$lgbm_confusion$overall
+my_results$my_models_PCA$lgbm_model_results$lgbm_confusion$overall
 ```
 
 ### Absolute
 
 ```{r}
-# my_results$my_models_absolute$gbm_model_results$gbm_result[c("stat", "importance_plot")]
-# my_results$my_models_absolute$gbm_caret_model_results$gbm_result[c("stat", "importance_plot")]
-# t(
-#   as.data.frame(
-#     my_results$my_models_absolute$lgbm_model_results$lgbm_model$params[c(
-#       "boosting",
-#       "lambda_l1",
-#       "lambda_l2",
-#       "num_leaves",
-#       "max_depth",
-#       "feature_fraction",
-#       "bagging_fraction",
-#       "bagging_freq",
-#       "learning_rate"
-#     )]
-#   )
-# ) %>% my_table()
-# my_results$my_models_absolute$lgbm_model_results$lgbm_confusion
-# my_results$my_models_absolute$lgbm_model_results$lgbm_importance_plot %>% 
-#   lgb.plot.importance()
-# my_results$my_models_absolute$lgbm_model_results$lgbm_importance_plot %>% 
-#   lgb.plot.interpretation()
-# my_results$my_models_absolute$lgbm_model_results$lgbm_plot %>% 
-#   walk(print)
+t(
+  as.data.frame(
+    my_results$my_models_absolute$lgbm_model_results$lgbm_model$params[c(
+      "boosting",
+      "lambda_l1",
+      "lambda_l2",
+      "num_leaves",
+      "max_depth",
+      "feature_fraction",
+      "bagging_fraction",
+      "bagging_freq",
+      "learning_rate"
+    )]
+  )
+) %>% my_table()
+my_results$my_models_absolute$lgbm_model_results$lgbm_confusion
+my_results$my_models_absolute$lgbm_model_results$lgbm_importance_plot %>%
+  lgb.plot.importance()
+my_results$my_models_absolute$lgbm_model_results$lgbm_importance_plot %>%
+  lgb.plot.interpretation()
+my_results$my_models_absolute$lgbm_model_results$lgbm_plot %>%
+  walk(print)
 ```
 
 ### Relative
 
 ```{r}
-# my_results$my_models_relative$gbm_model_results$gbm_result[c("stat", "importance_plot")]
-# my_results$my_models_relative$gbm_caret_model_results$gbm_result[c("stat", "importance_plot")]
-# t(
-#   as.data.frame(
-#     my_results$my_models_relative$lgbm_model_results$lgbm_model$params[c(
-#       "boosting",
-#       "lambda_l1",
-#       "lambda_l2",
-#       "num_leaves",
-#       "max_depth",
-#       "feature_fraction",
-#       "bagging_fraction",
-#       "bagging_freq",
-#       "learning_rate"
-#     )]
-#   )
-# ) %>% my_table()
-# my_results$my_models_relative$lgbm_model_results$lgbm_confusion
-# my_results$my_models_relative$lgbm_model_results$lgbm_importance_plot %>% 
-#   lgb.plot.importance()
-# my_results$my_models_relative$lgbm_model_results$lgbm_importance_plot %>% 
-#   lgb.plot.interpretation()
-# my_results$my_models_relative$lgbm_model_results$lgbm_plot %>% 
-#   walk(print)
+t(
+  as.data.frame(
+    my_results$my_models_relative$lgbm_model_results$lgbm_model$params[c(
+      "boosting",
+      "lambda_l1",
+      "lambda_l2",
+      "num_leaves",
+      "max_depth",
+      "feature_fraction",
+      "bagging_fraction",
+      "bagging_freq",
+      "learning_rate"
+    )]
+  )
+) %>% my_table()
+my_results$my_models_relative$lgbm_model_results$lgbm_confusion
+my_results$my_models_relative$lgbm_model_results$lgbm_importance_plot %>%
+  lgb.plot.importance()
+my_results$my_models_relative$lgbm_model_results$lgbm_importance_plot %>%
+  lgb.plot.interpretation()
+my_results$my_models_relative$lgbm_model_results$lgbm_plot %>%
+  walk(print)
 ```
 
 ### PCA
 
 ```{r}
-# my_results$my_models_PCA$gbm_model_results$gbm_result[c("stat", "importance_plot")]
-# my_results$my_models_PCA$gbm_caret_model_results$gbm_result[c("stat", "importance_plot")]
-# t(
-#   as.data.frame(
-#     my_results$my_models_PCA$lgbm_model_results$lgbm_model$params[c(
-#       "boosting",
-#       "lambda_l1",
-#       "lambda_l2",
-#       "num_leaves",
-#       "max_depth",
-#       "feature_fraction",
-#       "bagging_fraction",
-#       "bagging_freq",
-#       "learning_rate"
-#     )]
-#   )
-# ) %>% my_table()
-# my_results$my_models_PCA$lgbm_model_results$lgbm_confusion
-# my_results$my_models_PCA$lgbm_model_results$lgbm_importance_plot %>% 
-#   lgb.plot.importance()
-# my_results$my_models_PCA$lgbm_model_results$lgbm_importance_plot %>% 
-#   lgb.plot.interpretation()
-# my_results$my_models_PCA$lgbm_model_results$lgbm_plot %>% 
-#   walk(print)
+t(
+  as.data.frame(
+    my_results$my_models_PCA$lgbm_model_results$lgbm_model$params[c(
+      "boosting",
+      "lambda_l1",
+      "lambda_l2",
+      "num_leaves",
+      "max_depth",
+      "feature_fraction",
+      "bagging_fraction",
+      "bagging_freq",
+      "learning_rate"
+    )]
+  )
+) %>% my_table()
+my_results$my_models_PCA$lgbm_model_results$lgbm_confusion
+my_results$my_models_PCA$lgbm_model_results$lgbm_importance_plot %>%
+  lgb.plot.importance()
+my_results$my_models_PCA$lgbm_model_results$lgbm_importance_plot %>%
+  lgb.plot.interpretation()
+my_results$my_models_PCA$lgbm_model_results$lgbm_plot %>%
+  walk(print)
 ```
 
 # References

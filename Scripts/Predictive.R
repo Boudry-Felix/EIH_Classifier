@@ -44,64 +44,6 @@ for (name_seq in names(my_data$summaries)) {
     gbm_data_partition(sep_col = "eih",
                        sep_prop = 0.65)
 
-  ## GBM analysis -----------------------------------------------------------
-  ## Analysis using a classical GBM model
-  gbm_model <- # Train a GBM model
-    gbm(
-      formula = eih ~ .,
-      distribution = "bernoulli",
-      data = gbm_data$train_data,
-      n.trees = 3500,
-      interaction.depth = 2,
-      n.minobsinnode = 3,
-      shrinkage = 0.01,
-      bag.fraction = 0.9,
-      cv.folds = 2,
-      class.stratify.cv = NULL,
-    )
-  gbm_result <- # Compute results
-    gbm_pred(
-      input_model = gbm_model,
-      input_data = gbm_data,
-      predicted_var = "eih",
-      threshold = 0.5
-    )
-
-  gbm_model_results <-
-    lst(gbm_model, gbm_result)
-
-  ## GBM caret analysis -----------------------------------------------------
-  param_grid <- expand.grid(
-    # Define parameter grid
-    n.trees = seq(100, 1000, by = 50),
-    interaction.depth = seq(1, 7, by = 1),
-    n.minobsinnode = 3,
-    shrinkage = c(0.001, 0.01, 0.1)
-  )
-  gbm_model <- train(
-    # Train GBM model with grid parameters
-    as.factor(eih) ~ .,
-    data = gbm_data$train_data,
-    method = "gbm",
-    distribution = "bernoulli",
-    tuneGrid = param_grid,
-    trControl = trainControl(
-      method = "cv",
-      number = 2,
-      returnResamp = "all"
-    ),
-    na.action = na.pass
-  )
-  gbm_result <- # Compute GBM results
-    gbm_pred(
-      input_model = gbm_model,
-      input_data = gbm_data,
-      predicted_var = "eih"
-    )
-
-  gbm_caret_model_results <-
-    lst(gbm_model, gbm_result)
-
   ## Light GBM analysis -----------------------------------------------------
   lgbm_train_data <-
     split.default(x = gbm_data$train_data,
