@@ -180,7 +180,8 @@ for (analysis_data in lapply(my_data$encoded_summaries, "[[", "encoded_data")) {
   dbscan_graph <- fviz_cluster(dbscan_data,
                                analysis_data_scaled,
                                geom = "point",
-                               show.clust.cent = FALSE)
+                               show.clust.cent = FALSE) +
+    guides(shape = FALSE)
   optics_graph <-
     extractXi(object = optics_data, xi = 0.02) %>% plot()
   optics_graph <- recordPlot()

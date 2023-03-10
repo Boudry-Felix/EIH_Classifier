@@ -187,7 +187,7 @@ lgbm_round_tune <-
         predict(object = lgbm_model,
                 lgbm_test_data,
                 reshape = TRUE)
-      lgbm_pred_y = ifelse(test = lgbm_pred > 0.495,
+      lgbm_pred_y = ifelse(test = lgbm_pred > median(lgbm_pred),
                            yes = 1,
                            no = 0)
       lgbm_confusion <-

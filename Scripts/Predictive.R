@@ -42,7 +42,7 @@ for (name_seq in names(my_data$summaries)) {
       )
     )) %>%
     gbm_data_partition(sep_col = "eih",
-                       sep_prop = 0.65)
+                       sep_prop = 0.6)
 
   ## Light GBM analysis -----------------------------------------------------
   lgbm_train_data <-
@@ -86,7 +86,7 @@ for (name_seq in names(my_data$summaries)) {
     list(test = lgbm_dtest) # Create a valid (reference) data set
   optimal_rounds <-
     lgbm_round_tune(
-      my_rounds = seq(300, 1500, by = 100),
+      my_rounds = seq(500, 1000, by = 100),
       lgbm_params = lgbm_params,
       lgbm_dtrain = lgbm_dtrain,
       lgbm_valids = lgbm_valids,
@@ -107,7 +107,7 @@ for (name_seq in names(my_data$summaries)) {
   lgbm_test_data_pred <- as.matrix(x = lgbm_test_data$values)
   lgbm_pred <-
     predict(object = lgbm_model, lgbm_test_data_pred, reshape = TRUE)
-  lgbm_pred_y = ifelse(lgbm_pred > 0.5, 1, 0)
+  lgbm_pred_y = ifelse(lgbm_pred > median(lgbm_pred), 1, 0)
 
   lgbm_confusion <-
     confusionMatrix(as.factor(x = lgbm_test_data$label[["eih"]]),

@@ -34,8 +34,8 @@ my_data$all <-
     FUN = function(my_dataframe)
       filter(.data = my_dataframe,
              rowSums(x = is.na(x = my_dataframe)) != ncol(x = my_dataframe))
-  ) %>%
-  remove_outliers()
+  ) #%>%
+  # remove_outliers()
 
 # Summary absolute --------------------------------------------------------
 # Summarizing all data frames into one

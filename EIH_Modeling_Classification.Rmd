@@ -134,7 +134,6 @@ my_results$cluster_results_absolute$hclust_td$graph %>%
   marrangeGrob(ncol = 2, nrow = 1, top = NULL)
 my_results$cluster_results_absolute$dbscan$graph
 my_results$cluster_results_absolute$optics$graph
-
 ```
 
 ### Relative
@@ -152,7 +151,6 @@ my_results$cluster_results_relative$hclust_td$graph %>%
   marrangeGrob(ncol = 2, nrow = 1, top = NULL)
 my_results$cluster_results_relative$dbscan$graph
 my_results$cluster_results_relative$optics$graph
-
 ```
 
 ### PCA based
@@ -170,7 +168,6 @@ my_results$cluster_results_PCA$hclust_td$graph %>%
   marrangeGrob(ncol = 2, nrow = 1, top = NULL)
 my_results$cluster_results_PCA$dbscan$graph
 my_results$cluster_results_PCA$optics$graph
-
 ```
 
 ## Predicitve
