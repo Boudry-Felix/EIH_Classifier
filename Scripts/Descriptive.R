@@ -150,10 +150,12 @@ for (analysis_data in lapply(my_data$encoded_summaries, "[[", "encoded_data")) {
         my_label_cols <-
           my_data$infos$eih_severity[my_data$keeped_rows %>% as.numeric()] %>% as.factor() %>% as.numeric()
       }
-      fviz_dend(x = x,
-                cex = 0.5,
-                label_cols = my_label_cols,
-                horiz = TRUE)
+      fviz_dend(
+        x = x,
+        cex = 0.5,
+        label_cols = my_label_cols,
+        horiz = TRUE
+      )
     }
   ) %>%
     `names<-`(value = cluster_number_names)
@@ -170,10 +172,12 @@ for (analysis_data in lapply(my_data$encoded_summaries, "[[", "encoded_data")) {
         my_label_cols <-
           my_data$infos$eih_severity[my_data$keeped_rows %>% as.numeric()] %>% as.factor() %>% as.numeric()
       }
-      fviz_dend(x = x,
-                cex = 0.5,
-                label_cols = my_label_cols,
-                horiz = TRUE)
+      fviz_dend(
+        x = x,
+        cex = 0.5,
+        label_cols = my_label_cols,
+        horiz = TRUE
+      )
     }
   ) %>%
     `names<-`(value = cluster_number_names)
@@ -185,6 +189,40 @@ for (analysis_data in lapply(my_data$encoded_summaries, "[[", "encoded_data")) {
   optics_graph <-
     extractXi(object = optics_data, xi = 0.02) %>% plot()
   optics_graph <- recordPlot()
+
+  ## Boxplots ---------------------------------------------------------------
+  ## Boxplot per cluster (absolute data)
+
+  ## Adding cluster group to data
+  plot_df <-
+    do.call(
+      "cbind",
+      list(
+        analysis_data,
+        lapply(X = kclust_data, FUN = "[[", "cluster"),
+        lapply(X = hclust_bu_data, FUN = "[[", "cluster"),
+        lapply(X = hclust_td_data, FUN = "[[", "cluster"),
+        eih = my_data$summaries$absolute[rownames(analysis_data), "eih"],
+        eih_severity = my_data$summaries$absolute[rownames(analysis_data), "eih_severity"]
+      )
+    )
+
+  ## Creating boxplots
+  cluster_columns <- # Select cluster columns
+    colnames(x = plot_df[grepl(pattern = "clust", x = colnames(plot_df))])
+
+  # Plotting boxplots for each variable in each cluster
+  cluster_boxplots <- lapply(
+    X = cluster_columns,
+    FUN = \(my_col)
+    sapply(
+      X = colnames(plot_df),
+      FUN = boxplots_by_clust,
+      cluster_col = my_col,
+      simplify = FALSE,
+      USE.NAMES = TRUE
+    )
+  ) %>% `names<-`(value = cluster_columns)
 
   ## Cluster data Structure -----------------------------------------------
   kclust <-
@@ -206,7 +244,8 @@ for (analysis_data in lapply(my_data$encoded_summaries, "[[", "encoded_data")) {
       hclust_bu,
       hclust_td,
       dbscan = dbscan_clust,
-      optics = optics_clust
+      optics = optics_clust,
+      boxplots = cluster_boxplots
     )
   )
   my_counter <- my_counter + 1
