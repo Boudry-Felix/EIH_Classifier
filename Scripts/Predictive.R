@@ -22,7 +22,7 @@ require(DiagrammeR)
 rm(list = setdiff(x = ls(), y = lsf.str())) # Clean environment
 load(file = "./Environments/descriptive.RData") # Load environment
 my_date <- format(Sys.time(), "%Y-%m-%d_%H.%M")
-init_folder(folder_list = c("Output", "Params"))
+init_folder(folder_list = c("Output"))
 
 # Analysis ----------------------------------------------------------------
 # source(file = "./Scripts/LGBM_rounds_tune.R") # Compute optimal nrounds
@@ -135,6 +135,7 @@ for (name_seq in names(my_data$summaries)) {
 
   # Data structure ----------------------------------------------------------
   if (!dir.exists("./Params")) {
+    init_folder(folder_list = paste0("Model_", my_date), folder_root = "Output/")
     lgbm_export(
       study = study,
       my_date = my_date,
