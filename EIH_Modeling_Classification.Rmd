@@ -1,0 +1,296 @@
+---
+title: "EIH Model"
+author: "Félix Boudry"
+date: "`r Sys.Date()`"
+documentclass: article
+classoption: oneside
+lang: en-US
+output:
+  html_document: 
+    toc: yes
+    number_section: yes
+    fig_caption: yes
+  word_document:
+    toc: yes
+    number_sections: 4
+    fig_caption: yes
+  pdf_document: 
+    toc: yes
+    toc_depth: 4
+    number_sections: yes
+    fig_caption: yes
+    df_print: kable
+bibliography: EIH_modeling.bib
+---
+
+```{r Setup, echo=FALSE, message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(
+	echo = FALSE,
+	error = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+
+# Import libraries
+library(tidyverse)
+library(readxl)
+library(data.table)
+library(janitor)
+library(fs)
+library(FactoMineR)
+library(missMDA)
+library(CatEncoders)
+library(factoextra)
+library(clusplus)
+library(dbscan)
+library(caret)
+library(gbm)
+library(lightgbm)
+library(reticulate)
+library(shapviz)
+library(DiagrammeR)
+library(kableExtra)
+library(grDevices)
+library(psych)
+library(gridExtra)
+library(ggplotify)
+```
+
+```{r Scripts, message=FALSE, warning=FALSE, include=FALSE, paged.print=TRUE}
+# Sourcing scripts
+# Some parameters need configuration :
+# - Cluster number has to be specified in the "Descriptive.R" script
+# - eps and MinPts have to be specified for DBScan clustering
+source("./Scripts/Functions.R")
+source("./Scripts/Import.R")
+source("./Scripts/Compute.R")
+source("./Scripts/Descriptive.R")
+source("./Scripts/Predictive.R")
+```
+
+```{r}
+load(file = "./Environments/predictive.RData")
+```
+
+# Introduction
+
+It is well known that endurance performances are limited by physiological
+factors among which the cardio-respiratory is one of the most important
+(@amannConvectiveOxygenTransport2008, @bassettLimitingFactorsMaximum2000). This
+system can be limiting through different ways including the limitations of the
+cardiac output (Qc), the oxygen diffusion or the pulmonary perfusion. Those
+limitations can be enhanced by physical training and physiological adaptations
+to exercise. Thus with training we can observe an increased cardiac output,
+pulmonary perfusion or oxygen diffusion through an increased hemoglobin
+concentration.
+
+It's also well known that the environment can impact the oxygen pressures and
+thus the inspired volume. This limitation is also present during
+experimentation, like simulated altitude, during which the inspired fraction of
+oxygen is diminished.
+
+If the cardiac system is one of the most known limiting, the pulmonary system
+can also participated in the observed limitations. This system is complicated
+and the pulmonary anatomy is composed by several "section". A known
+physiopathology impact athlete's performances is the exercise-induces hypoxemia
+(EIH) (@raberinHypoxemieInduiteExercice2019). The purpose of this work is to be
+able to classify athletes as EIH or NEIH without using the direct indicator
+(saturation).
+
+# Methods
+
+## Subjects
+
+```{r}
+describe(my_data$infos, na.rm = T) %>%
+  select(c("mean", "sd", "median", "min", "max")) %>%
+  subset(rownames(.) %in% c("age", "height", "weight", "saturation_end")) %>%
+  my_table(caption = "<center><strong>Données anthropologiques (n = 127)</center></strong>")
+describe(my_data$infos, na.rm = T) %>%
+  select(c("mean", "sd", "median", "min", "max")) %>%
+  subset(rownames(.) %in% c("train_volume", "train_years")) %>%
+  my_table(caption = "<center><strong>Données d'entraînement des athlètes (n = 127)</center></strong>")
+table(my_data$inf$sport) %>%
+  my_table(col.names = c("Sport", "Freq"),
+           caption = "<center><strong>Sports pratiqués (n = 127)</center></strong>")
+```
+
+# Results
+
+## Descriptive
+
+### Absolute
+
+```{r}
+my_results$cluster_results_absolute$cluster_number_graph %>%
+  marrangeGrob(ncol = 2, nrow = 2, top = NULL)
+my_results$cluster_results_absolute$kclust$graph %>%
+  marrangeGrob(ncol = 2, nrow = 1, top = NULL)
+my_results$cluster_results_absolute$kclust$coord %>%
+  marrangeGrob(ncol = 1, nrow = 2, top = NULL)
+my_results$cluster_results_absolute$hclust_bu$graph %>%
+  marrangeGrob(ncol = 2, nrow = 1, top = NULL)
+my_results$cluster_results_absolute$hclust_td$graph %>%
+  marrangeGrob(ncol = 2, nrow = 1, top = NULL)
+my_results$cluster_results_absolute$dbscan$graph
+my_results$cluster_results_absolute$optics$graph
+my_results$cluster_results_absolute$boxplots %>%
+
+  lapply(
+    X = .,
+    FUN = marrangeGrob,
+    ncol = 2,
+    nrow = 2,
+    top = NULL
+  ) %>%
+  walk(print)
+
+```
+
+### Relative
+
+```{r}
+my_results$cluster_results_relative$cluster_number_graph %>%
+  marrangeGrob(ncol = 2, nrow = 2, top = NULL)
+my_results$cluster_results_relative$kclust$graph %>%
+  marrangeGrob(ncol = 2, nrow = 1, top = NULL)
+my_results$cluster_results_relative$kclust$coord %>%
+  marrangeGrob(ncol = 1, nrow = 2, top = NULL)
+my_results$cluster_results_relative$hclust_bu$graph %>%
+  marrangeGrob(ncol = 2, nrow = 1, top = NULL)
+my_results$cluster_results_relative$hclust_td$graph %>%
+  marrangeGrob(ncol = 2, nrow = 1, top = NULL)
+my_results$cluster_results_relative$dbscan$graph
+my_results$cluster_results_relative$optics$graph
+my_results$cluster_results_relative$boxplots %>%
+
+  lapply(
+    X = .,
+    FUN = marrangeGrob,
+    ncol = 2,
+    nrow = 2,
+    top = NULL
+  ) %>%
+  walk(print)
+```
+
+### PCA based
+
+```{r}
+my_results$cluster_results_PCA$cluster_number_graph %>%
+  marrangeGrob(ncol = 2, nrow = 2, top = NULL)
+my_results$cluster_results_PCA$kclust$graph %>%
+  marrangeGrob(ncol = 2, nrow = 1, top = NULL)
+my_results$cluster_results_PCA$kclust$coord %>%
+  marrangeGrob(ncol = 1, nrow = 2, top = NULL)
+my_results$cluster_results_PCA$hclust_bu$graph %>%
+  marrangeGrob(ncol = 2, nrow = 1, top = NULL)
+my_results$cluster_results_PCA$hclust_td$graph %>%
+  marrangeGrob(ncol = 2, nrow = 1, top = NULL)
+my_results$cluster_results_PCA$dbscan$graph
+my_results$cluster_results_PCA$optics$graph
+my_results$cluster_results_PCA$boxplots %>%
+
+  lapply(
+    X = .,
+    FUN = marrangeGrob,
+    ncol = 2,
+    nrow = 2,
+    top = NULL
+  ) %>%
+  walk(print)
+
+```
+
+## Predicitve
+
+```{r}
+my_results$my_models_absolute$lgbm_model_results$lgbm_confusion$overall
+my_results$my_models_relative$lgbm_model_results$lgbm_confusion$overall
+my_results$my_models_PCA$lgbm_model_results$lgbm_confusion$overall
+```
+
+### Absolute
+
+```{r}
+t(
+  as.data.frame(
+    my_results$my_models_absolute$lgbm_model_results$lgbm_model$params[c(
+      "boosting",
+      "lambda_l1",
+      "lambda_l2",
+      "num_leaves",
+      "max_depth",
+      "feature_fraction",
+      "bagging_fraction",
+      "bagging_freq",
+      "learning_rate"
+    )]
+  )
+) %>% my_table()
+my_results$my_models_absolute$lgbm_model_results$lgbm_confusion
+my_results$my_models_absolute$lgbm_model_results$lgbm_importance_plot %>%
+  lgb.plot.importance()
+my_results$my_models_absolute$lgbm_model_results$lgbm_importance_plot %>%
+  lgb.plot.interpretation()
+my_results$my_models_absolute$lgbm_model_results$lgbm_plot %>%
+  walk(print)
+```
+
+### Relative
+
+```{r}
+t(
+  as.data.frame(
+    my_results$my_models_relative$lgbm_model_results$lgbm_model$params[c(
+      "boosting",
+      "lambda_l1",
+      "lambda_l2",
+      "num_leaves",
+      "max_depth",
+      "feature_fraction",
+      "bagging_fraction",
+      "bagging_freq",
+      "learning_rate"
+    )]
+  )
+) %>% my_table()
+my_results$my_models_relative$lgbm_model_results$lgbm_confusion
+my_results$my_models_relative$lgbm_model_results$lgbm_importance_plot %>%
+  lgb.plot.importance()
+my_results$my_models_relative$lgbm_model_results$lgbm_importance_plot %>%
+  lgb.plot.interpretation()
+my_results$my_models_relative$lgbm_model_results$lgbm_plot %>%
+  walk(print)
+```
+
+### PCA
+
+```{r}
+t(
+  as.data.frame(
+    my_results$my_models_PCA$lgbm_model_results$lgbm_model$params[c(
+      "boosting",
+      "lambda_l1",
+      "lambda_l2",
+      "num_leaves",
+      "max_depth",
+      "feature_fraction",
+      "bagging_fraction",
+      "bagging_freq",
+      "learning_rate"
+    )]
+  )
+) %>% my_table()
+my_results$my_models_PCA$lgbm_model_results$lgbm_confusion
+my_results$my_models_PCA$lgbm_model_results$lgbm_importance_plot %>%
+  lgb.plot.importance()
+my_results$my_models_PCA$lgbm_model_results$lgbm_importance_plot %>%
+  lgb.plot.interpretation()
+my_results$my_models_PCA$lgbm_model_results$lgbm_plot %>%
+  walk(print)
+```
+
+# References
+
+<div id="refs"></div>

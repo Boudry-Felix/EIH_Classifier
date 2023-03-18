@@ -1,25 +1,23 @@
 # Informations ------------------------------------------------------------
-
 # Title: Import.R
 # Author: Félix Boudry
-# Contact: <felix.boudry@laposte.net>
-# License: Private
+# Contact: <felix.boudry@univ-perp.fr>
+# License: GPLv3
 # Description: Import the data needed to create a model of the EIH phenomenon.
 
 # Configuration -----------------------------------------------------------
 
 ## Libraries --------------------------------------------------------------
 ## List of used libraries.
+require(tidyverse)
 require(readxl)
-require(dplyr)
 require(data.table)
 require(janitor)
-require(tibble)
 require(fs)
 
 ## Global vectors ---------------------------------------------------------
 ## Define vectors used in entire script.
-rm(list = ls()) # Clean environment
+rm(list = setdiff(x = ls(), y = lsf.str())) # Clean environment
 my_data <- lst() # Create a list for data
 my_data_infos <-
   data.table() # Create a table for informations about subjects
@@ -31,7 +29,8 @@ studies_list <- dir_info(path = "Data", recurse = FALSE) %>%
 studies_list <- studies_list$path
 
 for (my_study in studies_list) {
-  information_files_list <- dir_info(path = my_study, recurse = TRUE) %>%
+  information_files_list <-
+    dir_info(path = my_study, recurse = TRUE) %>%
     filter(type == "file")
   information_files_list <- information_files_list$path
   information_files_list <-
@@ -80,28 +79,25 @@ for (my_study in studies_list) {
       USE.NAMES = TRUE
     ) %>%
     lapply(clean_names, sep_out = "")
-
   my_data <- append(x = my_data, values = my_list)
   my_data_infos <- rbind(x = my_data_infos, values = data_infos)
   # Remove variables not containing "my_data" & my_data_frame
-  rm(list = setdiff(ls(), ls(pattern = "my_data|clean.*")), my_data_frame)
+  rm(list = setdiff(ls(), c(lsf.str(), ls(pattern = "my_data|clean.*"))), my_data_frame)
 }
 
 names(my_data) <-
   gsub(pattern = "Data/.*/.*/",
        replacement = "",
-       x = names(my_data))
-names(my_data) <-
+       x = names(my_data)) %>%
   gsub(pattern = ".xlsx",
-       replacement = "",
-       x = names(my_data))
-remove_names <- setdiff(names(my_data), my_data_infos$sujet) %>%
-  append(setdiff(my_data_infos$sujet, names(my_data)))
+       replacement = "")
+remove_names <- setdiff(names(my_data), my_data_infos$subject) %>%
+  append(setdiff(my_data_infos$subject, names(my_data)))
 my_data <- my_data[names(my_data) %in% remove_names == FALSE]
 my_data_infos <-
-  my_data_infos[my_data_infos$sujet %in% remove_names == FALSE]
+  my_data_infos[my_data_infos$subject %in% remove_names == FALSE]
 # Remove variables not containing "my_data" & my_data_frame
-rm(list = setdiff(ls(), ls(pattern = "my_data")), my_data_frame)
+rm(list = setdiff(ls(), c(lsf.str(), ls(pattern = "my_data"))), my_data_frame)
 
 # Data structure ----------------------------------------------------------
 # Structure all data in a list
@@ -110,5 +106,7 @@ my_data <- lst(my_data, my_data_infos) %>%
 rm(my_data_infos)
 
 # Export data -------------------------------------------------------------
-write.csv(my_data$infos, "./Output/my_data_infos.csv")
+if (!dir.exists("./Environments")) {
+  dir.create("./Environments")
+}
 save.image(file = "./Environments/import.RData")
