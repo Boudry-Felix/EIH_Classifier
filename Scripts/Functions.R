@@ -9,7 +9,11 @@
 require(kableExtra)
 require(grDevices)
 require(CatEncoders)
-
+require(tidyverse)
+require(readxl)
+require(data.table)
+require(janitor)
+require(fs)
 
 # Formats -----------------------------------------------------------------
 my_table <- function(input, ...) {
@@ -90,6 +94,40 @@ df_encode <- function(input = my_data, list_names) {
     names(output) <- list_names
   }
   return(output)
+}
+
+common_col <- function(df_list) {
+  cleaned_df <- lapply(X = df_list, FUN = colnames) %>%
+    Reduce(f = intersect) %>%
+    lapply(X = df_list, FUN = "[", .)
+  return(cleaned_df)
+}
+
+my_summary <- function(df_list, df_names) {
+  mapply(
+    FUN = function(df_input, name_input)
+      dplyr::summarise(df_input, across(
+        # Compute.fns for each column
+        .cols = everything(),
+        # Columns to compute
+        .fns = list(
+          # Functions to apply on columns
+          mean = \(x) base::mean(x = x, na.rm = TRUE),
+          max = \(x) base::max(x = x, na.rm = TRUE),
+          min = \(x) base::min(x = x, na.rm = TRUE),
+          median = \(x) stats::median(x = x, na.rm = TRUE)
+        ),
+        .names = "{.col}_{.fn}"
+      )) %>%
+      cbind("subject" = name_input),
+    df_input = df_list,
+    name_input = names(df_names)
+  ) %>%
+    t() %>%
+    as.data.frame() %>%
+    unnest(cols = colnames(x = .)) %>%
+    merge(y = infos, by = "subject", all = TRUE) %>%
+    select(-any_of(c("train_years", "data_type", "type", "environment", "intensity")))
 }
 
 # Clusters ----------------------------------------------------------------
@@ -411,6 +449,83 @@ init_folder <- function(folder_list, folder_root = NULL) {
       dir.create(paste0(folder_root, my_folder))
     }
   }
+}
+
+project_import <- function(project_path) {
+  my_data <- lst() # Create a list for data
+  my_data_infos <-
+    data.table() # Create a table for informations about subjects
+  studies_list <-
+    dir_info(path = paste(project_path), recurse = FALSE) %>%
+    filter(type == "directory")
+  studies_list <- studies_list$path
+
+  for (my_study in studies_list) {
+    information_files_list <-
+      dir_info(path = my_study, recurse = TRUE) %>%
+      filter(type == "file")
+    information_files_list <- information_files_list$path
+    information_files_list <-
+      grep(pattern = ".csv",
+           x = information_files_list,
+           value = TRUE)
+    subject_informations <-
+      # Import subjects informations and clean column names
+      fread(file = grep(
+        pattern = ".*subject.*",
+        x = information_files_list,
+        value = TRUE
+      )) %>%
+      clean_names()
+    test_informations <-
+      # Import test informations and clean column names
+      fread(file = grep(
+        pattern = ".*tests.*",
+        x = information_files_list,
+        value = TRUE
+      )) %>%
+      clean_names()
+    data_infos <- subject_informations %>% # Merge informations
+      append(x = ., values = test_informations[1, ]) %>%
+      as.data.table()
+    files_list <- dir_info(my_study, recurse = TRUE) %>%
+      filter(type == "file")
+    files_list <- files_list$path
+    files_list <-
+      grep(pattern = ".xlsx",
+           x = files_list,
+           value = TRUE)
+    # Importing data
+    my_study <-
+      gsub(pattern = "Data/",
+           replacement = "",
+           x = my_study)
+    my_list <-
+      sapply(
+        files_list,
+        read_excel,
+        .name_repair = "minimal",
+        na = c("", " ", "NA"),
+        col_type = "numeric",
+        simplify = FALSE,
+        USE.NAMES = TRUE
+      ) %>%
+      lapply(clean_names, sep_out = "")
+    my_data <- append(x = my_data, values = my_list)
+    my_data_infos <- rbind(x = my_data_infos, values = data_infos)
+  }
+  names(my_data) <-
+    gsub(pattern = "Data/.*/.*/",
+         replacement = "",
+         x = names(my_data)) %>%
+    gsub(pattern = ".xlsx",
+         replacement = "")
+  remove_names <- setdiff(names(my_data), my_data_infos$subject) %>%
+    append(setdiff(my_data_infos$subject, names(my_data)))
+  my_data <- my_data[names(my_data) %in% remove_names == FALSE]
+  my_data_infos <-
+    my_data_infos[my_data_infos$subject %in% remove_names == FALSE]
+  return(lst(my_data, my_data_infos))
 }
 
 # Export ------------------------------------------------------------------

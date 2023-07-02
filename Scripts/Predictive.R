@@ -23,26 +23,31 @@ rm(list = setdiff(x = ls(), y = lsf.str())) # Clean environment
 load(file = "./Environments/descriptive.RData") # Load environment
 my_date <- format(Sys.time(), "%Y-%m-%d_%H.%M")
 init_folder(folder_list = c("Output"))
+bob1 <- read.csv("Data/caracteristiques_2_simple.csv")
+bob1$eih <- as.numeric(bob1$eih) - 1
 
 # Analysis ----------------------------------------------------------------
 # source(file = "./Scripts/LGBM_rounds_tune.R") # Compute optimal nrounds
 for (name_seq in names(my_data$summaries)) {
-  gbm_data <-
-    merge(
-      x = select_if(.tbl = my_data$summaries[[name_seq]], .predicate = is.numeric),
-      y = my_data$encoded_summaries$absolute[[2]]["eih"] - 1,
-      by = "row.names"
-    ) %>%
-    select(.data = ., -any_of(
-      c(
-        "Row.names",
-        "saturation_rest",
-        "saturation_end",
-        "saturation_delta"
-      )
-    )) %>%
+  gbm_data <- bob1 %>%
+    select(.data = ., -any_of(c("sujet", "subject", "sex", "eih_severity"))) %>%
+    # merge(
+    #   x = select_if(.tbl = my_data$summaries[[name_seq]], .predicate = is.numeric),
+    #   y = my_data$encoded_summaries$absolute[[2]]["eih"] - 1,
+    #   by = "row.names"
+    # ) %>%
+    # select(.data = ., -any_of(
+    #   c(
+    #     "Row.names",
+    #     "saturation_rest",
+    #     "saturation_end",
+    #     "saturation_delta"
+    #   )
+    # )) %>%
     gbm_data_partition(sep_col = "eih",
                        sep_prop = 0.6)
+
+
 
   ## Light GBM analysis -----------------------------------------------------
   lgbm_train_data <-

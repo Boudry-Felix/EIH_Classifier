@@ -40,10 +40,17 @@ antrop_data <- # Summarise descriptive values
     )
   )) %>% as.data.frame() %>% round()
 
+bob1 <- read.csv("Data/caracteristiques_2_simple.csv", na.strings = c("", " ", "na", "NA"))
+bob2 <- read.csv("Data/caracteristiques_2_full.csv")
+
+my_data$test <- list("simple" = bob1)
+
 # Clustering --------------------------------------------------------------
 # Compute and plot clusters
 my_counter <- 1
-for (analysis_data in lapply(my_data$encoded_summaries, "[[", "encoded_data")) {
+for (analysis_data in my_data$test) {
+  analysis_data_full <- analysis_data %>%
+    na.omit()
   analysis_data <- # Clean and select usable data
     analysis_data %>%
     as.data.frame() %>%
@@ -124,11 +131,11 @@ for (analysis_data in lapply(my_data$encoded_summaries, "[[", "encoded_data")) {
                      show.clust.cent = FALSE) +
           {
             if (length(unique(x[["cluster"]])) == 2)
-              geom_point(aes(shape = my_data$infos$eih[my_data$keeped_rows %>% as.numeric()]))
+              geom_point(aes(shape = analysis_data_full$eih))
           } +
           {
             if (length(unique(x[["cluster"]])) == 4)
-              geom_point(aes(shape = my_data$infos$eih[my_data$keeped_rows %>% as.numeric()]))
+              geom_point(aes(shape = analysis_data_full$eih_severity))
           } +
           labs(shape = "Status")
       }
@@ -142,13 +149,17 @@ for (analysis_data in lapply(my_data$encoded_summaries, "[[", "encoded_data")) {
     FUN = function(x) {
       if (length(unique(x[["cluster"]])) == 2)
       {
+        # my_label_cols <-
+        #   my_data$infos$eih[my_data$keeped_rows %>% as.numeric()] %>% as.factor() %>% as.numeric()
         my_label_cols <-
-          my_data$infos$eih[my_data$keeped_rows %>% as.numeric()] %>% as.factor() %>% as.numeric()
+          analysis_data_full$eih %>% as.factor() %>% as.numeric()
       }
       else if (length(unique(x[["cluster"]])) == 4)
       {
+        # my_label_cols <-
+        #   my_data$infos$eih_severity[my_data$keeped_rows %>% as.numeric()] %>% as.factor() %>% as.numeric()
         my_label_cols <-
-          my_data$infos$eih_severity[my_data$keeped_rows %>% as.numeric()] %>% as.factor() %>% as.numeric()
+          analysis_data_full$eih_severity %>% as.factor() %>% as.numeric()
       }
       fviz_dend(
         x = x,
@@ -165,12 +176,12 @@ for (analysis_data in lapply(my_data$encoded_summaries, "[[", "encoded_data")) {
       if (length(unique(x[["cluster"]])) == 2)
       {
         my_label_cols <-
-          my_data$infos$eih[my_data$keeped_rows %>% as.numeric()] %>% as.factor() %>% as.numeric()
+          analysis_data_full$eih %>% as.factor() %>% as.numeric()
       }
       else if (length(unique(x[["cluster"]])) == 4)
       {
         my_label_cols <-
-          my_data$infos$eih_severity[my_data$keeped_rows %>% as.numeric()] %>% as.factor() %>% as.numeric()
+          analysis_data_full$eih_severity %>% as.factor() %>% as.numeric()
       }
       fviz_dend(
         x = x,
@@ -186,9 +197,9 @@ for (analysis_data in lapply(my_data$encoded_summaries, "[[", "encoded_data")) {
                                geom = "point",
                                show.clust.cent = FALSE) +
     guides(shape = FALSE)
-  optics_graph <-
-    extractXi(object = optics_data, xi = 0.02) %>% plot()
-  optics_graph <- recordPlot()
+  # optics_graph <-
+  #   extractXi(object = optics_data, xi = 0.02) %>% plot()
+  # optics_graph <- recordPlot()
 
   ## Boxplots ---------------------------------------------------------------
   ## Boxplot per cluster (absolute data)
@@ -234,7 +245,7 @@ for (analysis_data in lapply(my_data$encoded_summaries, "[[", "encoded_data")) {
   hclust_td <-
     lst(data = hclust_td_data, graph = hclust_td_graph)
   dbscan_clust <- lst(data = dbscan_data, graph = dbscan_graph)
-  optics_clust <- lst(data = optics_data, graph = optics_graph)
+  optics_clust <- lst(data = optics_data, graph = NA)
 
   assign(
     x = paste0("cluster_results_", names(my_data$summaries[my_counter])),

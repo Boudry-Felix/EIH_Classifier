@@ -21,9 +21,7 @@ load(file = "./Environments/import.RData") # Load environment
 
 # Select columns ----------------------------------------------------------
 # Select only columns present in all data frames
-my_data$all <- lapply(X = my_data$all, FUN = colnames) %>%
-  Reduce(f = intersect) %>%
-  lapply(X = my_data$all, FUN = "[", .)
+my_data$all <- common_col(my_data$my_data)
 my_colnames <- colnames(my_data$all[[1]])
 
 # Clean data --------------------------------------------------------------
@@ -39,30 +37,7 @@ my_data$all <-
 
 # Summary absolute --------------------------------------------------------
 # Summarizing all data frames into one
-my_summary <- mapply(
-  FUN = function(df_input, name_input)
-    dplyr::summarise(df_input, across(
-      # Compute.fns for each column
-      .cols = everything(),
-      # Columns to compute
-      .fns = list(
-        # Functions to apply on columns
-        mean = \(x) base::mean(x = x, na.rm = TRUE),
-        max = \(x) base::max(x = x, na.rm = TRUE),
-        min = \(x) base::min(x = x, na.rm = TRUE),
-        median = \(x) stats::median(x = x, na.rm = TRUE)
-      ),
-      .names = "{.col}_{.fn}"
-    )) %>%
-    cbind("subject" = name_input),
-  df_input = my_data$all,
-  name_input = names(my_data$all)
-) %>%
-  t() %>%
-  as.data.frame() %>%
-  unnest(cols = colnames(x = .)) %>%
-  merge(y = my_data$infos, by = "subject", all = TRUE) %>%
-  select(-any_of(c("train_years", "data_type", "type", "environment", "intensity")))
+my_summary <- my_summary(df_list = my_data$all, df_names = my_data$all)
 
 # Summary relative --------------------------------------------------------
 # Transform mean and min columns to relatives max values

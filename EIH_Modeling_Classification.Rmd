@@ -54,16 +54,19 @@ library(grDevices)
 library(psych)
 library(gridExtra)
 library(ggplotify)
+
+# Parameters for the analysis
+cluster_number <- c(2, 4) # Indicate the number of cluster to compute (list)
+dbscan_eps <- 3
+dbscan_minPts <- 3
+optics_eps <- 3
+optics_minPts <- 5
 ```
 
 ```{r Scripts, message=FALSE, warning=FALSE, include=FALSE, paged.print=TRUE}
 # Sourcing scripts
-# Some parameters need configuration :
-# - Cluster number has to be specified in the "Descriptive.R" script
-# - eps and MinPts have to be specified for DBScan clustering
 source("./Scripts/Functions.R")
 source("./Scripts/Import.R")
-source("./Scripts/Compute.R")
 source("./Scripts/Descriptive.R")
 source("./Scripts/Predictive.R")
 ```

@@ -14,3 +14,7 @@ LaTeX: XeLaTeX
 
 AutoAppendNewline: Yes
 StripTrailingWhitespace: Yes
+
+PythonType: conda
+PythonVersion: 3.11.3
+PythonPath: ~/.conda/envs/EIH/bin/python3.11
