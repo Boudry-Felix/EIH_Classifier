@@ -14,6 +14,8 @@ require(lightgbm)
 require(reticulate)
 require(shapviz)
 require(DiagrammeR)
+require(missRanger)
+require(fs)
 
 # Environment -------------------------------------------------------------
 # Define vectors used in entire script.
@@ -21,7 +23,7 @@ my_date <- format(Sys.time(), "%Y-%m-%d_%H.%M")
 
 # Analysis ----------------------------------------------------------------
 # source(file = "./Scripts/LGBM_rounds_tune.R") # Compute optimal nrounds
-gbm_data <- analysis_data %>% missRanger::missRanger()
+gbm_data <- analysis_data %>% missRanger()
 gbm_data$eih <- as.numeric(gbm_data$eih %>% as.factor()) - 1
 gbm_data <- gbm_data %>%
   select(.data = ., -any_of(c("sujet", "subject", "sex", "eih_severity"))) %>%
@@ -110,8 +112,7 @@ lgbm_model_results <-
 
 # Data structure ----------------------------------------------------------
 if (!dir.exists("./Params")) {
-  init_folder(folder_list = paste0("Model_", my_date),
-              folder_root = "Output/")
+  dir_create(path = paste0("Output/Model_", my_date))
   lgbm_export(
     study = study,
     my_date = my_date,

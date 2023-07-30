@@ -12,43 +12,22 @@ require(factoextra)
 require(dbscan)
 require(clusplus)
 require(magrittr)
+require(missRanger)
+require(caret)
 
 # Clustering --------------------------------------------------------------
 # Compute and plot clusters
 cluster_data <- # Clean and select usable data
   analysis_data %>%
   select_if(is.numeric) %>%
-  select(.data = ., -any_of(c(
-    "saturation_rest",
-    "saturation_end",
-    "saturation_delta"
-  ))) %>%
-  missRanger::missRanger()
-
-# cluster_data_two <- ClustImpute::ClustImpute(cluster_data, 2)
-# cluster_data_four <- ClustImpute::ClustImpute(cluster_data, 4)
-
-antrop_data <- # Summarise descriptive values
-  dplyr::summarise(cluster_data, across(
-    .cols = any_of(
-      c(
-        "age",
-        "height",
-        "weight",
-        "train_years",
-        "train_volume",
-        "saturation_end"
-      )
-    ),
-    .fns = list(
-      \(x) mean = mean(x, na.rm = TRUE),
-      \(x) sd = sd(x, na.rm = TRUE)
-    )
-  )) %>% as.data.frame() %>% round()
-
-## Scale data--------------------------------------------------------------
-compute_data_scaled <-
-  scale(x = cluster_data) %>% as.data.frame()
+  select(.data = ., -any_of(discriminating_variables)) %>%
+  missRanger() %>%
+  {
+    if (scale_data)
+      scale(x = .) %>% as.data.frame()
+    else
+      .
+  }
 
 ## Optimal cluster choice -------------------------------------------------
 cluster_number_graph <-
@@ -100,6 +79,11 @@ optics_data <-
   optics(x = compute_data_scaled,
          eps = optics_eps,
          minPts = optics_minPts)
+
+# Result accuracy ---------------------------------------------------------
+# Compute confusion matrix to assert accuracy
+bob <- confusionMatrix(kclust_data$two$cluster %>% as.factor(), analysis_data$eih %>% as.factor() %>% as.numeric() %>% as.factor() %>% rev())
+bob <- confusionMatrix(kclust_data$two$cluster %>% as.factor(), analysis_data$eih %>% as.factor() %>% as.numeric() %>% as.factor() %>% rev())
 
 ## Plotting ---------------------------------------------------------------
 kclust_graph <-
@@ -180,7 +164,7 @@ dbscan_graph <- fviz_cluster(dbscan_data,
                              show.clust.cent = FALSE) +
   guides(shape = FALSE)
 optics_graph <-
-  extractXi(object = optics_data, xi = 0.1) %>% plot()
+  extractXi(object = optics_data, xi = optics_xi) %>% plot()
 optics_graph <- recordPlot()
 
 ## Boxplots ---------------------------------------------------------------

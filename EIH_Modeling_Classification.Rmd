@@ -46,17 +46,24 @@ library(DiagrammeR)
 library(magrittr)
 library(gridExtra)
 library(psych)
+library(missRanger)
+library(fs)
 
 # Environment
-init_folder(folder_list = c("Output"))
+dir_create(path = "Output")
 
 # Parameters for the analysis
+discriminating_variables <- c("saturation_rest",
+                              "saturation_end",
+                              "saturation_delta")
+scale_data <- TRUE
 cluster_number <- c(2, 4)
 cluster_number_names <- list("two", "four")
-dbscan_eps <- 3
+dbscan_eps <- 10
 dbscan_minPts <- 3
-optics_eps <- 25
+optics_eps <- 250
 optics_minPts <- 5
+optics_xi <- 0.1
 ```
 
 ```{r Scripts, message=FALSE, warning=FALSE, include=FALSE, paged.print=TRUE}
@@ -104,13 +111,14 @@ able to classify athletes as EIH or NEIH without using the direct indicator
 ## Subjects
 
 ```{r}
-describe(antrop_data, na.rm = T) %>%
+describe(x = analysis_data[c("age",
+                             "height",
+                             "weight")] , na.rm = T) %>%
   select(c("mean", "sd", "median", "min", "max")) %>%
-  subset(rownames(.) %in% c("age", "height", "weight", "saturation_end")) %>%
   my_table(caption = "<center><strong>Données anthropologiques (n = 127)</center></strong>")
-describe(antrop_data, na.rm = T) %>%
+describe(x = analysis_data[c("train_years",
+                             "train_volume")], na.rm = T) %>%
   select(c("mean", "sd", "median", "min", "max")) %>%
-  subset(rownames(.) %in% c("train_volume", "train_years")) %>%
   my_table(caption = "<center><strong>Données d'entraînement des athlètes (n = 127)</center></strong>")
 ```
 
