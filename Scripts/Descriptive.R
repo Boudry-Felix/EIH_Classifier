@@ -76,7 +76,7 @@ dbscan_data <-
          eps = dbscan_eps,
          minPts = dbscan_minPts)
 optics_data <-
-  optics(x = compute_data_scaled,
+  optics(x = cluster_data,
          eps = optics_eps,
          minPts = optics_minPts)
 
@@ -159,7 +159,7 @@ hclust_td_graph <- lapply(
 ) %>%
   `names<-`(value = cluster_number_names)
 dbscan_graph <- fviz_cluster(dbscan_data,
-                             compute_data_scaled,
+                             cluster_data,
                              geom = "point",
                              show.clust.cent = FALSE) +
   guides(shape = FALSE)

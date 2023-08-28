@@ -13,7 +13,7 @@ my_table <- function(input, ...) {
   # Custom kable table
   kableExtra::kable(x = input, ... = ...) %>%
     kableExtra::kable_styling(bootstrap_options = c("striped"),
-                  full_width = FALSE)
+                              full_width = FALSE)
 }
 
 # Computations ------------------------------------------------------------
@@ -66,19 +66,22 @@ common_col <- function(df_list) {
 my_summary <- function(df_list, df_names) {
   mapply(
     FUN = function(df_input, name_input)
-      dplyr::summarise(df_input, dplyr::across(
-        # Compute.fns for each column
-        .cols = everything(),
-        # Columns to compute
-        .fns = list(
-          # Functions to apply on columns
-          mean = \(x) base::mean(x = x, na.rm = TRUE),
-          max = \(x) base::max(x = x, na.rm = TRUE),
-          min = \(x) base::min(x = x, na.rm = TRUE),
-          median = \(x) stats::median(x = x, na.rm = TRUE)
-        ),
-        .names = "{.col}_{.fn}"
-      )) %>%
+      dplyr::summarise(
+        df_input,
+        dplyr::across(
+          # Compute.fns for each column
+          .cols = everything(),
+          # Columns to compute
+          .fns = list(
+            # Functions to apply on columns
+            mean = \(x) base::mean(x = x, na.rm = TRUE),
+            max = \(x) base::max(x = x, na.rm = TRUE),
+            min = \(x) base::min(x = x, na.rm = TRUE),
+            median = \(x) stats::median(x = x, na.rm = TRUE)
+          ),
+          .names = "{.col}_{.fn}"
+        )
+      ) %>%
       cbind("subject" = name_input),
     df_input = df_list,
     name_input = names(df_names)
@@ -87,7 +90,15 @@ my_summary <- function(df_list, df_names) {
     as.data.frame() %>%
     tidyr::unnest(cols = colnames(x = .)) %>%
     merge(y = infos, by = "subject", all = TRUE) %>%
-    dplyr::select(-any_of(c("train_years", "data_type", "type", "environment", "intensity")))
+    dplyr::select(-any_of(
+      c(
+        "train_years",
+        "data_type",
+        "type",
+        "environment",
+        "intensity"
+      )
+    ))
 }
 
 # Clusters ----------------------------------------------------------------
@@ -365,20 +376,71 @@ project_import <- function(project_path) {
       ) %>%
       lapply(janitor::clean_names, sep_out = "")
     imported_data <- append(x = imported_data, values = my_list)
-    imported_data_infos <- rbind(x = imported_data_infos, values = data_infos)
+    imported_data_infos <-
+      rbind(x = imported_data_infos, values = data_infos)
   }
   names(imported_data) <-
-    gsub(pattern = paste0(project_path,".*/.*/"),
-         replacement = "",
-         x = names(imported_data)) %>%
+    gsub(
+      pattern = paste0(project_path, ".*/.*/"),
+      replacement = "",
+      x = names(imported_data)
+    ) %>%
     gsub(pattern = ".xlsx",
          replacement = "")
-  remove_names <- setdiff(names(imported_data), imported_data_infos$subject) %>%
+  remove_names <-
+    setdiff(names(imported_data), imported_data_infos$subject) %>%
     append(setdiff(imported_data_infos$subject, names(imported_data)))
-  imported_data <- imported_data[names(imported_data) %in% remove_names == FALSE]
+  imported_data <-
+    imported_data[names(imported_data) %in% remove_names == FALSE]
   imported_data_infos <-
     imported_data_infos[imported_data_infos$subject %in% remove_names == FALSE]
   return(dplyr::lst("data" = imported_data, "infos" = imported_data_infos))
+}
+
+import_data <- function() {
+  my_date <- format(Sys.time(), "%Y-%m-%d_%H.%M")
+
+  imported_data <-
+    project_import(project_path = easycsv::choose_dir())
+
+  infos <- imported_data$infos
+  my_data <- imported_data$data %>%
+    common_col()
+
+  my_colnames <- colnames(my_data[[1]])
+
+  summary_simple <- my_summary(my_data, my_data)
+  summary_relative <- compute_relative(summary_simple)
+
+  keeped_rows <- summary_simple %>%
+    as.data.frame() %>%
+    dplyr::select_if(is.numeric) %>%
+    na.omit() %>%
+    rownames()
+
+  PCA_summary <-
+    lapply(my_data[keeped_rows %>% as.numeric()], missMDA::imputePCA) %>%
+    lapply(FUN = as.data.frame) %>%
+    lapply(FUN = dplyr::select, contains(my_colnames)) %>%
+    lapply(FUN = FactoMineR::PCA, graph = FALSE) %>%
+    lapply(FUN = "[", "eig") %>%
+    lapply(FUN = unlist) %>%
+    do.call(what = rbind, args = .) %>%
+    as.data.frame() %>%
+    tibble::rownames_to_column(.data = ., var = "subject")
+
+
+  # Cleaning ----------------------------------------------------------------
+  # Removes outliers in summaries
+  my_summaries <-
+    dplyr::lst(summary_simple, summary_relative, PCA_summary) %>%
+    `names<-`(value = c("absolute", "relative", "PCA"))
+
+  # Labelling ---------------------------------------------------------------
+  encoded_summaries <- lapply(X = my_summaries, FUN = df_encode)
+
+  dir.create(path = "Data")
+  rio::export_list(x = my_summaries, file = "Data/summary_%s.csv")
 }
 
 # Export ------------------------------------------------------------------
@@ -397,12 +459,10 @@ lgbm_export <-
     )
     saveRDS(
       object = lgbm_model_results,
-      file = paste0(
-        "Output/Model_",
-        my_date,
-        "/LightGBM_model",
-        ".rds"
-      )
+      file = paste0("Output/Model_",
+                    my_date,
+                    "/LightGBM_model",
+                    ".rds")
     )
     saveRDS(
       object = study,

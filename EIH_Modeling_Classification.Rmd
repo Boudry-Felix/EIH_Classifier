@@ -51,8 +51,11 @@ library(fs)
 
 # Environment
 dir_create(path = "Output")
+dir_create(path = "Environments")
+dir_create(path = "Params")
 
 # Parameters for the analysis
+new_LGBM_params <- TRUE
 discriminating_variables <- c("saturation_rest",
                               "saturation_end",
                               "saturation_delta")

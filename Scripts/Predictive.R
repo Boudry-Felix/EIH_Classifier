@@ -50,15 +50,15 @@ lgbm_dtest <- lgb.Dataset.create.valid(
 )
 
 ### Configure -------------------------------------------------------------
-if (dir.exists("./Params")) {
-  my_config <- paste0("Params/Best_params", ".rds")
-  my_params <- readRDS(file = my_config)
-} else {
+if (new_LGBM_params) {
   source_python("./Scripts/Optuna_tune.py")
   my_params <- study$best_params %>%
     lapply(FUN = gsub,
            pattern = ",",
            replacement = ".")
+} else {
+  my_config <- paste0("Params/Best_params", ".rds")
+  my_params <- readRDS(file = my_config)
 }
 
 lgbm_params <- c(list(
@@ -113,11 +113,9 @@ lgbm_model_results <-
 # Data structure ----------------------------------------------------------
 if (!dir.exists("./Params")) {
   dir_create(path = paste0("Output/Model_", my_date))
-  lgbm_export(
-    study = study,
-    my_date = my_date,
-    lgbm_model_results = lgbm_model_results
-  )
+  lgbm_export(study = study,
+              my_date = my_date,
+              lgbm_model_results = lgbm_model_results)
 }
 
 # Export data -------------------------------------------------------------
