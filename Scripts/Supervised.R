@@ -1,9 +1,9 @@
 # Informations ------------------------------------------------------------
-# Title: lightGBM.R
+# Title: Supervised.R
 # Author: Félix Boudry
 # Contact: <felix.boudry@univ-perp.fr>
 # License: GPLv3
-# Description: Analyse the data to create predictive models
+# Description: Analyze data using supervised algorithms.
 
 # Libraries ---------------------------------------------------------------
 # List of used libraries.
@@ -51,7 +51,7 @@ lgbm_dtest <- lgb.Dataset.create.valid(
 
 ### Configure -------------------------------------------------------------
 if (new_LGBM_params) {
-  source_python("./Scripts/Optuna_tune.py")
+  source_python("./Scripts/Hyperparameters_tune.py")
   my_params <- study$best_params %>%
     lapply(FUN = gsub,
            pattern = ",",
@@ -120,4 +120,4 @@ if (!dir.exists("./Params")) {
 
 # Export data -------------------------------------------------------------
 # Save environment to avoid recomputing
-save.image(file = "./Environments/predictive.RData")
+save.image(file = paste0("./Output/", analysis_date, "/predictive.RData"))

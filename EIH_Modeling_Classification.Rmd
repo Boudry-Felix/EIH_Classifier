@@ -1,5 +1,5 @@
 ---
-title: "Prediction EIH using AI approaches"
+title: "EIH prediction using AI approaches"
 author: "Félix Boudry"
 date: "`r Sys.Date()`"
 documentclass: article
@@ -25,10 +25,10 @@ bibliography: EIH_modeling.bib
 
 ```{r Setup, echo=FALSE, message=FALSE, warning=FALSE}
 knitr::opts_chunk$set(
-	echo = FALSE,
-	error = TRUE,
-	message = FALSE,
-	warning = FALSE
+  echo = FALSE,
+  error = TRUE,
+  message = FALSE,
+  warning = FALSE
 )
 
 # Import libraries
@@ -48,17 +48,15 @@ library(gridExtra)
 library(psych)
 library(missRanger)
 library(fs)
+library(tcltk)
+library(fossil)
 
 # Environment
-dir_create(path = "Output")
-dir_create(path = "Environments")
-dir_create(path = "Params")
+analysis_date <- format(Sys.time(), "%Y-%m-%d_%H.%M")
+dir_create(path = paste0("Output/", analysis_date))
 
 # Parameters for the analysis
 new_LGBM_params <- TRUE
-discriminating_variables <- c("saturation_rest",
-                              "saturation_end",
-                              "saturation_delta")
 scale_data <- TRUE
 cluster_number <- c(2, 4)
 cluster_number_names <- list("two", "four")
@@ -67,21 +65,21 @@ dbscan_minPts <- 3
 optics_eps <- 250
 optics_minPts <- 5
 optics_xi <- 0.1
+discriminating_variables <- c("saturation_rest",
+                              "saturation_end",
+                              "saturation_delta")
 ```
 
 ```{r Scripts, message=FALSE, warning=FALSE, include=FALSE, paged.print=TRUE}
 # Data to use
+tkmessageBox(title = "Next action", message = "Choose data to analyze.")
 analysis_data <-
-  read.csv("Data/Data_EIH_simple.csv",
+  read.csv(file.choose(),
            na.strings = c("", " ", "na", "NA"))
 
 # Sourcing scripts
-source("./Scripts/Descriptive.R")
-source("./Scripts/Predictive.R")
-```
-
-```{r}
-load(file = "./Environments/predictive.RData")
+source("./Scripts/Unsupervised.R")
+source("./Scripts/Supervised.R")
 ```
 
 # Introduction
@@ -113,7 +111,7 @@ able to classify athletes as EIH or NEIH without using the direct indicator
 
 ## Subjects
 
-```{r}
+```{r Subjects}
 describe(x = analysis_data[c("age",
                              "height",
                              "weight")] , na.rm = T) %>%
@@ -127,11 +125,16 @@ describe(x = analysis_data[c("train_years",
 
 # Results
 
-## Descriptive
+## Unsupervised learning
 
-```{r}
+```{r Clustering results}
 cluster_number_graph %>%
   marrangeGrob(ncol = 2, nrow = 2, top = NULL)
+kclust_confusion
+hclust_bu_confusion
+hclust_td_confusion
+dbscan_rand
+optics_rand
 kclust_graph %>%
   marrangeGrob(ncol = 2, nrow = 1, top = NULL)
 kclust_coord %>%
@@ -142,24 +145,22 @@ hclust_td_graph %>%
   marrangeGrob(ncol = 2, nrow = 1, top = NULL)
 dbscan_graph
 optics_graph
-# cluster_boxplots %>%
-#   lapply(
-#     X = .,
-#     FUN = marrangeGrob,
-#     ncol = 2,
-#     nrow = 2,
-#     top = NULL
-#   ) %>%
-#   walk(print)
+cluster_boxplots %>%
+  lapply(
+    X = .,
+    FUN = marrangeGrob,
+    ncol = 2,
+    nrow = 2,
+    top = NULL
+  ) %>%
+  walk(print)
 ```
 
-## Predicitve
+## Supervised learning
 
-```{r}
+```{r LGBM results}
 lgbm_confusion$overall
-```
 
-```{r}
 t(as.data.frame(lgbm_model$params[c(
   "boosting",
   "lambda_l1",
