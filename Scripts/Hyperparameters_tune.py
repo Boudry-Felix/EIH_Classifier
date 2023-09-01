@@ -35,7 +35,7 @@ def objective(trial):
     return accuracy
  
 study = optuna.create_study(direction='maximize')
-study.optimize(objective, n_trials=5000)
+study.optimize(objective, n_trials=2000)
  
 print('Number of finished trials:', len(study.trials))
 print('Best trial:', study.best_trial.params)

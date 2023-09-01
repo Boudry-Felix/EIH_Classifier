@@ -452,23 +452,23 @@ lgbm_export <-
            lgbm_model_results) {
     saveRDS(
       object = as.list(study[["best_params"]]),
-      file = paste0("Output/Model_",
-                    my_date,
-                    "/Best_params",
+      file = paste0("Output/",
+                    analysis_date,
+                    "/params/Bast_params",
                     ".rds")
     )
     saveRDS(
       object = lgbm_model_results,
-      file = paste0("Output/Model_",
-                    my_date,
-                    "/LightGBM_model",
+      file = paste0("Output/",
+                    analysis_date,
+                    "/params/LightGBM_model",
                     ".rds")
     )
     saveRDS(
       object = study,
-      file = paste0("Output/Model_",
-                    my_date,
-                    "/Optuna_study",
+      file = paste0("Output/",
+                    analysis_date,
+                    "/params/Optuna_study",
                     ".rds")
     )
   }

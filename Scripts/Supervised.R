@@ -111,12 +111,10 @@ lgbm_model_results <-
   )
 
 # Data structure ----------------------------------------------------------
-if (!dir.exists("./Params")) {
-  dir_create(path = paste0("Output/Model_", my_date))
-  lgbm_export(study = study,
-              my_date = my_date,
-              lgbm_model_results = lgbm_model_results)
-}
+dir_create(path = paste0("Output/", analysis_date, "/params/"))
+lgbm_export(study = study,
+            my_date = my_date,
+            lgbm_model_results = lgbm_model_results)
 
 # Export data -------------------------------------------------------------
 # Save environment to avoid recomputing

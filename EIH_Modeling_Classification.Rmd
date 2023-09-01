@@ -51,10 +51,6 @@ library(fs)
 library(tcltk)
 library(fossil)
 
-# Environment
-analysis_date <- format(Sys.time(), "%Y-%m-%d_%H.%M")
-dir_create(path = paste0("Output/", analysis_date))
-
 # Parameters for the analysis
 new_LGBM_params <- TRUE
 scale_data <- TRUE
@@ -145,15 +141,6 @@ hclust_td_graph %>%
   marrangeGrob(ncol = 2, nrow = 1, top = NULL)
 dbscan_graph
 optics_graph
-cluster_boxplots %>%
-  lapply(
-    X = .,
-    FUN = marrangeGrob,
-    ncol = 2,
-    nrow = 2,
-    top = NULL
-  ) %>%
-  walk(print)
 ```
 
 ## Supervised learning

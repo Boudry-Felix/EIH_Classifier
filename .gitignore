@@ -30,7 +30,7 @@ vignettes/*.pdf
 # Duplicates are for folders and links
 /Data/*
 Data
-/Output/*
+/Output*
 /Environments/*
 /Params/*
 /Images/*
@@ -41,3 +41,5 @@ Data
 *.log
 *.tex
 Data_raw
+figure
+
