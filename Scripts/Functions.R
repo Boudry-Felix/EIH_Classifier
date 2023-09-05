@@ -6,53 +6,17 @@
 # Description: Functions used for this project
 
 # Libraries ---------------------------------------------------------------
-require(kableExtra)
-require(grDevices)
-require(CatEncoders)
-
+require(magrittr)
 
 # Formats -----------------------------------------------------------------
 my_table <- function(input, ...) {
   # Custom kable table
-  kable(x = input, ... = ...) %>%
-    kable_styling(bootstrap_options = c("striped"),
-                  full_width = FALSE)
+  kableExtra::kable(x = input, ... = ...) %>%
+    kableExtra::kable_styling(bootstrap_options = c("striped"),
+                              full_width = FALSE)
 }
 
 # Computations ------------------------------------------------------------
-remove_outliers <- function(input) {
-  # Removes outliers based on boxplot.stats
-  input <-
-    lapply(
-      X = input,
-      FUN = function(my_dataframe)
-        lapply(
-          X = my_dataframe,
-          FUN = function(my_col)
-            if (is.numeric(my_col)) {
-              lapply(
-                X = my_col,
-                FUN = function(my_value)
-                  ifelse(
-                    test = my_value %in% boxplot.stats(my_col)$out,
-                    yes = NA,
-                    no = as.numeric(my_value)
-                  )
-              )
-            }
-        )
-    ) %>%
-    lapply(
-      FUN = function(my_dataframe)
-        data.frame(sapply(X = my_dataframe, FUN = c))
-    ) %>%
-    lapply(
-      FUN = function(x)
-        lapply(X = x, FUN = as.numeric)
-    ) %>%
-    lapply(FUN = as.data.frame)
-}
-
 compute_relative <- function(input) {
   maximum_columns <-
     grep(pattern = "max", x = colnames(x = input)) # List max columns
@@ -71,13 +35,13 @@ compute_relative <- function(input) {
 }
 
 col_encode <- function(my_col) {
-  convert_dic <- lst()
+  convert_dic <- dplyr::lst()
   if (is.numeric(x = my_col)) {
     my_col
   } else {
-    label <- LabelEncoder.fit(y = my_col)
+    label <- CatEncoders::LabelEncoder.fit(y = my_col)
     convert_dic <<- append(x = convert_dic, values = label)
-    transform(enc = label, my_col)
+    CatEncoders::transform(enc = label, my_col)
   }
 }
 
@@ -85,153 +49,106 @@ df_encode <- function(input = my_data, list_names) {
   # Encode (labeling) entire data frames
   encoded_data <- lapply(X = input,
                          FUN = col_encode) %>% as.data.frame()
-  output <- lst(convert_dic, encoded_data)
+  output <- dplyr::lst(convert_dic, encoded_data)
   if (!missing(x = list_names)) {
     names(output) <- list_names
   }
   return(output)
 }
 
+common_col <- function(df_list) {
+  cleaned_df <- lapply(X = df_list, FUN = colnames) %>%
+    Reduce(f = intersect) %>%
+    lapply(X = df_list, FUN = "[", .)
+  return(cleaned_df)
+}
+
+my_summary <- function(df_list, df_names) {
+  mapply(
+    FUN = function(df_input, name_input)
+      dplyr::summarise(
+        df_input,
+        dplyr::across(
+          # Compute.fns for each column
+          .cols = everything(),
+          # Columns to compute
+          .fns = list(
+            # Functions to apply on columns
+            mean = \(x) base::mean(x = x, na.rm = TRUE),
+            max = \(x) base::max(x = x, na.rm = TRUE),
+            min = \(x) base::min(x = x, na.rm = TRUE),
+            median = \(x) stats::median(x = x, na.rm = TRUE)
+          ),
+          .names = "{.col}_{.fn}"
+        )
+      ) %>%
+      cbind("subject" = name_input),
+    df_input = df_list,
+    name_input = names(df_names)
+  ) %>%
+    t() %>%
+    as.data.frame() %>%
+    tidyr::unnest(cols = colnames(x = .)) %>%
+    merge(y = infos, by = "subject", all = TRUE) %>%
+    dplyr::select(-any_of(
+      c(
+        "train_years",
+        "data_type",
+        "type",
+        "environment",
+        "intensity"
+      )
+    ))
+}
+
 # Clusters ----------------------------------------------------------------
 optimal_clust <- function(input_data, cluster_method) {
   # Choose number of cluster for analysis
   elbow_graph <-
-    fviz_nbclust(input_data, cluster_method, method = "wss") +
-    labs(subtitle = "Elbow method") +
-    ggtitle(label = "Optimal number of cluster")
+    factoextra::fviz_nbclust(input_data, cluster_method, method = "wss") +
+    ggplot2::labs(subtitle = "Elbow method") +
+    ggplot2::ggtitle(label = "Optimal number of cluster")
   silhouette_graph <-
-    fviz_nbclust(input_data, cluster_method, method = "silhouette") +
-    labs(subtitle = "Silhouette method") +
-    ggtitle(label = "Optimal number of cluster")
+    factoextra::fviz_nbclust(input_data, cluster_method, method = "silhouette") +
+    ggplot2::labs(subtitle = "Silhouette method") +
+    ggplot2::ggtitle(label = "Optimal number of cluster")
   gap_graph <-
-    fviz_nbclust(
+    factoextra::fviz_nbclust(
       input_data,
       cluster_method,
       nstart = 25,
       method = "gap_stat",
       nboot = 50
     ) +
-    labs(subtitle = "Gap statistic method") +
-    ggtitle(label = "Optimal number of cluster")
+    ggplot2::labs(subtitle = "Gap statistic method") +
+    ggplot2::ggtitle(label = "Optimal number of cluster")
 
   cluster_number_graph <- # Put graphs in list
-    lst(elbow_graph, silhouette_graph, gap_graph)
+    dplyr::lst(elbow_graph, silhouette_graph, gap_graph)
   names(x = cluster_number_graph) <- c("elbow", "silhouette", "gap")
   return(cluster_number_graph)
 }
 
-compute_kclust <- function(input, cluster_number) {
-  kclust_data <- lapply(X = cluster_number,
-                        FUN = kmeans, x = input) %>%
-    `names<-`(value = paste0("kclust_", cluster_number))
-}
-
-hcl_plot <- function(input_data, nclust) {
-  plot(input_data, cex = 0.6)
-  rect.hclust(tree = input_data, k = nclust)
-  recordPlot()
-}
-
 boxplots_by_clust <- function(data_col, cluster_col) {
-  ggplot(plot_df, aes(x = !!sym(cluster_col), y = !!sym(paste(data_col)))) +
-    geom_boxplot(aes(
+  ggplot2::ggplot(plot_df, aes(x = !!sym(cluster_col), y = !!sym(paste(data_col)))) +
+    ggplot2::geom_boxplot(aes(
       group = !!sym(cluster_col),
       fill = as.factor(!!sym(cluster_col))
     )) +
-    ggtitle(label = paste(data_col, "by cluster")) +
-    labs(fill = cluster_col)
-}
-
-subject_repartition <- function(data_col, cluster_col) {
-  ggplot(data = plot_df, mapping = aes(x = !!(1:nrow(x = plot_df)),
-                                       y = !!sym(paste(data_col)))) +
-    geom_point(mapping = aes(color = as.factor(!!sym(
-      paste(cluster_col)
-    )))) +
-    ggtitle(label = "Subject repartition in clusters") +
-    labs(fill = cluster_col)
+    ggplot2::ggtitle(label = paste(data_col, "by cluster")) +
+    ggplot2::labs(fill = cluster_col)
 }
 
 # GBM ---------------------------------------------------------------------
 gbm_data_partition <- function(input, sep_col, sep_prop) {
   split_indexes <- # Separate data in two using p
-    createDataPartition(y = input[[sep_col]], p = sep_prop, list = FALSE)
+    caret::createDataPartition(y = input[[sep_col]], p = sep_prop, list = FALSE)
   train_data <- # Create a train data set
     input[split_indexes,]
   test_data <- # Create a test data set
     input[-split_indexes,]
-  return(lst(train_data, test_data))
+  return(dplyr::lst(train_data, test_data))
 }
-
-lgbm_round_tune <-
-  function(my_rounds,
-           lgbm_params,
-           lgbm_dtrain,
-           lgbm_valids,
-           lgbm_test_data,
-           lgbm_test_data_label) {
-    optimal_rounds_result <-
-      matrix(nrow = 0, ncol = 2) %>% as.data.frame()
-    for (test_rounds in my_rounds) {
-      lgbm_model <- lgb.train(
-        # Train model
-        params = lgbm_params,
-        data = lgbm_dtrain,
-        nrounds = test_rounds,
-        valids = lgbm_valids,
-        verbose = -1
-      )
-      ### Test model --------------------------------------------------------
-      lgbm_test_data <- as.matrix(x = lgbm_test_data)
-      lgbm_pred <-
-        predict(object = lgbm_model,
-                lgbm_test_data,
-                reshape = TRUE)
-      lgbm_pred_y = ifelse(test = lgbm_pred > median(lgbm_pred),
-                           yes = 1,
-                           no = 0)
-      lgbm_confusion <-
-        confusionMatrix(as.factor(x = lgbm_test_data_label$eih),
-                        as.factor(x = lgbm_pred_y))
-      ### Save results ---------------------------------------------------------
-      optimal_rounds_result <-
-        rbind(optimal_rounds_result,
-              c(test_rounds, lgbm_confusion$overall[[1]]))
-    }
-    colnames(optimal_rounds_result) <- c("rounds", "results")
-    best_round <- which.max(optimal_rounds_result[["results"]])
-    best_round <- optimal_rounds_result[["rounds"]][best_round]
-    return(lst(optimal_rounds_result, best_round))
-  }
-
-gbm_pred <-
-  function(input_model,
-           input_data,
-           predicted_var,
-           threshold = NULL) {
-    importance <-
-      summary(object = input_model,
-              las = 1,
-              cBars = 10)
-    importance_plot <- recordPlot()
-    gbm_prediction <-
-      predict(
-        object = input_model,
-        newdata = input_data$test_data,
-        na.action = na.pass
-      )
-    if (!is.factor(gbm_prediction)) {
-      gbm_prediction <- ifelse(test = gbm_prediction > threshold,
-                               yes = 1,
-                               no = 0) %>%
-        as.factor()
-    }
-    gbm_predicted <-
-      as.factor(x = input_data[["test_data"]][[predicted_var]])
-    gbm_confusion <-
-      confusionMatrix(gbm_prediction, gbm_predicted, mode = "everything")
-    return(lst(stat = gbm_confusion, importance, importance_plot))
-  }
 
 lgb.plot.tree <- function(model = NULL,
                           tree = NULL,
@@ -254,7 +171,7 @@ lgb.plot.tree <- function(model = NULL,
     stop("tree: Has to be an integer numeric")
   }
   # extract data.table model structure
-  dt <- lgb.model.dt.tree(model)
+  dt <- lightgbm::lgb.model.dt.tree(model)
   # check that tree is less than or equal to the maximum tree index in the model
   if (tree > max(dt$tree_index)) {
     stop("tree: has to be less than the number of trees in the model")
@@ -293,7 +210,7 @@ lgb.plot.tree <- function(model = NULL,
   dt[default_left == FALSE, Missing := No]
   zero_present <-
     function(x) {
-      sapply(strsplit(as.character(x), '||', fixed = TRUE), function(el) {
+      sapply(base::strsplit(as.character(x), '||', fixed = TRUE), function(el) {
         any(el == '0')
       })
     }
@@ -333,7 +250,7 @@ lgb.plot.tree <- function(model = NULL,
   # replace indices with feature levels if rules supplied
   levels.to.names <- function(x, feature_name, rules) {
     lvls <- sort(rules[[feature_name]])
-    result <- strsplit(x, '||', fixed = TRUE)
+    result <- base::strsplit(x, '||', fixed = TRUE)
     result <- lapply(result, as.numeric)
     levels_to_names <- function(x) {
       names(lvls)[as.numeric(x)]
@@ -385,65 +302,172 @@ lgb.plot.tree <- function(model = NULL,
 
 lgbm_plots <- function(lgbm_model, lgbm_test_data_pred) {
   shap_data <-
-    shapviz(object = lgbm_model, X_pred = lgbm_test_data_pred)
+    shapviz::shapviz(object = lgbm_model, X_pred = lgbm_test_data_pred)
 
-  WF <- sv_waterfall(shap_data, row_id = 1)
-  SF <- sv_force(shap_data)
-  SI <- sv_importance(shap_data, kind = "beeswarm", groupOnX = TRUE)
+  WF <- shapviz::sv_waterfall(shap_data, row_id = 1)
+  SF <- shapviz::sv_force(shap_data)
+  SI <- shapviz::sv_importance(shap_data, kind = "beeswarm")
   # SD <- sv_dependence(shap_data, v = "eig5", "auto")
 
   TR <- lgb.plot.tree(lgbm_model, tree = 0)
-  return(lst(WF, SF, SI, TR))
+  return(dplyr::lst(WF, SF, SI, TR))
 }
 
 # File management ---------------------------------------------------------
 # All functions related to folder and file creation, deletion or import
-init_folder <- function(folder_list, folder_root = NULL) {
-  if (is.null(folder_root)) {
-    folder_root <- "./"
+project_import <- function(project_path) {
+  imported_data <- dplyr::lst() # Create a list for data
+  imported_data_infos <-
+    data.table::data.table() # Create a table for informations about samples
+  studies_list <-
+    fs::dir_info(path = paste(project_path), recurse = FALSE) %>%
+    dplyr::filter(type == "directory") %$%
+    path
+
+  for (my_study in studies_list) {
+    information_files_list <-
+      fs::dir_info(path = my_study, recurse = TRUE) %>%
+      dplyr::filter(type == "file") %$%
+      path %>%
+      grep(pattern = "Informations",
+           x = .,
+           value = TRUE)
+
+    subject_informations <-
+      # Import subjects informations and clean column names
+      data.table::fread(file = grep(
+        pattern = "Informations_subjects.*",
+        x = information_files_list,
+        value = TRUE
+      )) %>%
+      janitor::clean_names()
+    test_informations <-
+      # Import test informations and clean column names
+      data.table::fread(file = grep(
+        pattern = "Informations_tests.*",
+        x = information_files_list,
+        value = TRUE
+      )) %>%
+      janitor::clean_names()
+    data_infos <- subject_informations %>% # Merge informations
+      append(x = ., values = test_informations[1, ]) %>%
+      data.table::as.data.table()
+    files_list <- fs::dir_info(my_study, recurse = TRUE) %>%
+      dplyr::filter(type == "file")
+    files_list <- files_list$path
+    files_list <-
+      grep(pattern = ".xlsx",
+           x = files_list,
+           value = TRUE)
+    # Importing data
+    my_study <-
+      gsub(pattern = project_path,
+           replacement = "",
+           x = my_study)
+    my_list <-
+      sapply(
+        files_list,
+        readxl::read_excel,
+        .name_repair = "minimal",
+        na = c("", " ", "NA"),
+        col_type = "numeric",
+        simplify = FALSE,
+        USE.NAMES = TRUE
+      ) %>%
+      lapply(janitor::clean_names, sep_out = "")
+    imported_data <- append(x = imported_data, values = my_list)
+    imported_data_infos <-
+      rbind(x = imported_data_infos, values = data_infos)
   }
-  stopifnot(
-    "Error in root folder format (you probably forgot the \"/\" at the end of your path)" =
-      str_ends(string = folder_root, pattern = "/")
-  )
-  for (my_folder in folder_list) {
-    if (!dir.exists(paste0(folder_root, my_folder))) {
-      dir.create(paste0(folder_root, my_folder))
-    }
-  }
+  names(imported_data) <-
+    gsub(
+      pattern = paste0(project_path, ".*/.*/"),
+      replacement = "",
+      x = names(imported_data)
+    ) %>%
+    gsub(pattern = ".xlsx",
+         replacement = "")
+  remove_names <-
+    setdiff(names(imported_data), imported_data_infos$subject) %>%
+    append(setdiff(imported_data_infos$subject, names(imported_data)))
+  imported_data <-
+    imported_data[names(imported_data) %in% remove_names == FALSE]
+  imported_data_infos <-
+    imported_data_infos[imported_data_infos$subject %in% remove_names == FALSE]
+  return(dplyr::lst("data" = imported_data, "infos" = imported_data_infos))
+}
+
+import_data <- function() {
+  my_date <- format(Sys.time(), "%Y-%m-%d_%H.%M")
+
+  imported_data <-
+    project_import(project_path = easycsv::choose_dir())
+
+  infos <- imported_data$infos
+  my_data <- imported_data$data %>%
+    common_col()
+
+  my_colnames <- colnames(my_data[[1]])
+
+  summary_simple <- my_summary(my_data, my_data)
+  summary_relative <- compute_relative(summary_simple)
+
+  keeped_rows <- summary_simple %>%
+    as.data.frame() %>%
+    dplyr::select_if(is.numeric) %>%
+    na.omit() %>%
+    rownames()
+
+  PCA_summary <-
+    lapply(my_data[keeped_rows %>% as.numeric()], missMDA::imputePCA) %>%
+    lapply(FUN = as.data.frame) %>%
+    lapply(FUN = dplyr::select, contains(my_colnames)) %>%
+    lapply(FUN = FactoMineR::PCA, graph = FALSE) %>%
+    lapply(FUN = "[", "eig") %>%
+    lapply(FUN = unlist) %>%
+    do.call(what = rbind, args = .) %>%
+    as.data.frame() %>%
+    tibble::rownames_to_column(.data = ., var = "subject")
+
+
+  # Cleaning ----------------------------------------------------------------
+  # Removes outliers in summaries
+  my_summaries <-
+    dplyr::lst(summary_simple, summary_relative, PCA_summary) %>%
+    `names<-`(value = c("absolute", "relative", "PCA"))
+
+  # Labelling ---------------------------------------------------------------
+  encoded_summaries <- lapply(X = my_summaries, FUN = df_encode)
+
+  dir.create(path = "Data")
+  rio::export_list(x = my_summaries, file = "Data/summary_%s.csv")
 }
 
 # Export ------------------------------------------------------------------
 # Export data functions
 lgbm_export <-
   function(study,
-           my_date,
-           name_seq,
+           # name_seq,
            lgbm_model_results) {
     saveRDS(
       object = as.list(study[["best_params"]]),
-      file = paste0("Output/Model_",
-                    my_date,
-                    "/Best_params_",
-                    name_seq,
+      file = paste0("Output/",
+                    analysis_date,
+                    "/params/Bast_params",
                     ".rds")
     )
     saveRDS(
       object = lgbm_model_results,
-      file = paste0(
-        "Output/Model_",
-        my_date,
-        "/LightGBM_model_",
-        name_seq,
-        ".rds"
-      )
+      file = paste0("Output/",
+                    analysis_date,
+                    "/params/LightGBM_model",
+                    ".rds")
     )
     saveRDS(
       object = study,
-      file = paste0("Output/Model_",
-                    my_date,
-                    "/Optune_study_",
-                    name_seq,
+      file = paste0("Output/",
+                    analysis_date,
+                    "/params/Optuna_study",
                     ".rds")
     )
   }

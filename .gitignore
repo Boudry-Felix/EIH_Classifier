@@ -27,8 +27,10 @@ vignettes/*.pdf
 # R Environment Variables
 .Renviron
 # Personnal add
+# Duplicates are for folders and links
 /Data/*
-/Output/*
+Data
+/Output*
 /Environments/*
 /Params/*
 /Images/*
@@ -38,3 +40,6 @@ vignettes/*.pdf
 *.bib
 *.log
 *.tex
+Data_raw
+figure
+
