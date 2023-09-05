@@ -28,14 +28,14 @@ def objective(trial):
       'is_unbalance':True,
     }
  
-    gbm = lgb.train(param, dtrain, num_boost_round=150)
+    gbm = lgb.train(param, dtrain, num_boost_round=int(r.optuna_rounds))
     preds = gbm.predict(test_x)
     pred_labels = np.rint(preds)
     accuracy = sklearn.metrics.accuracy_score(test_y, pred_labels)
     return accuracy
  
 study = optuna.create_study(direction='maximize')
-study.optimize(objective, n_trials=2000)
+study.optimize(objective, n_trials=int(r.optuna_trials))
  
 print('Number of finished trials:', len(study.trials))
 print('Best trial:', study.best_trial.params)

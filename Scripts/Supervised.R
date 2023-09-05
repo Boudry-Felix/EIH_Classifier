@@ -17,10 +17,6 @@ require(DiagrammeR)
 require(missRanger)
 require(fs)
 
-# Environment -------------------------------------------------------------
-# Define vectors used in entire script.
-my_date <- format(Sys.time(), "%Y-%m-%d_%H.%M")
-
 # Analysis ----------------------------------------------------------------
 # source(file = "./Scripts/LGBM_rounds_tune.R") # Compute optimal nrounds
 gbm_data <- analysis_data %>% missRanger()
@@ -28,7 +24,7 @@ gbm_data$eih <- as.numeric(gbm_data$eih %>% as.factor()) - 1
 gbm_data <- gbm_data %>%
   select(.data = ., -any_of(c("sujet", "subject", "sex", "eih_severity"))) %>%
   gbm_data_partition(sep_col = "eih",
-                     sep_prop = 0.6)
+                     sep_prop = lgbm_split)
 
 ## Light GBM analysis -----------------------------------------------------
 lgbm_train_data <-
@@ -76,7 +72,7 @@ lgbm_model <- lgb.train(
   # Train model
   params = lgbm_params,
   data = lgbm_dtrain,
-  nrounds = 1000,
+  nrounds = lgbm_rounds,
   valids = lgbm_valids
 )
 
@@ -113,7 +109,6 @@ lgbm_model_results <-
 # Data structure ----------------------------------------------------------
 dir_create(path = paste0("Output/", analysis_date, "/params/"))
 lgbm_export(study = study,
-            my_date = my_date,
             lgbm_model_results = lgbm_model_results)
 
 # Export data -------------------------------------------------------------

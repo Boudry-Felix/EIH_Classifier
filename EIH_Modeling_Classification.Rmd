@@ -61,6 +61,10 @@ dbscan_minPts <- 3
 optics_eps <- 250
 optics_minPts <- 5
 optics_xi <- 0.1
+lgbm_rounds <- 500
+lgbm_split <- 0.65
+optuna_rounds <- 200
+optuna_trials <- 200
 discriminating_variables <- c("saturation_rest",
                               "saturation_end",
                               "saturation_delta")

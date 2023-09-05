@@ -329,14 +329,14 @@ project_import <- function(project_path) {
       fs::dir_info(path = my_study, recurse = TRUE) %>%
       dplyr::filter(type == "file") %$%
       path %>%
-      grep(pattern = ".csv",
+      grep(pattern = "Informations",
            x = .,
            value = TRUE)
 
     subject_informations <-
       # Import subjects informations and clean column names
       data.table::fread(file = grep(
-        pattern = ".*subject.*",
+        pattern = "Informations_subjects.*",
         x = information_files_list,
         value = TRUE
       )) %>%
@@ -344,7 +344,7 @@ project_import <- function(project_path) {
     test_informations <-
       # Import test informations and clean column names
       data.table::fread(file = grep(
-        pattern = ".*tests.*",
+        pattern = "Informations_tests.*",
         x = information_files_list,
         value = TRUE
       )) %>%
@@ -447,7 +447,6 @@ import_data <- function() {
 # Export data functions
 lgbm_export <-
   function(study,
-           my_date,
            # name_seq,
            lgbm_model_results) {
     saveRDS(
