@@ -12,7 +12,7 @@ report <-
   tcltk::tkmessageBox(type = "yesno",
                       message = "Generate a report?",
                       default = "no") %>%
-  tclvalue() %>%
+  tcltk::tclvalue() %>%
   easyr::tobool()# Choose to render a report
 
 analysis_date <- format(Sys.time(), "%Y-%m-%d_%H.%M")
