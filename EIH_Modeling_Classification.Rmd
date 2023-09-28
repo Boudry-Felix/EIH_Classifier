@@ -10,6 +10,7 @@ output:
     toc: yes
     number_section: yes
     fig_caption: yes
+    keep_md: yes
   word_document:
     toc: yes
     number_sections: 4
@@ -20,6 +21,20 @@ output:
     number_sections: yes
     fig_caption: yes
     df_print: kable
+    keep_md: yes
+params:
+  data:
+    label: "Input dataset:"
+    value: none
+    input: file
+  data_list:
+    label: "List of files to import:"
+    value: none
+    input: text
+  data_folder:
+    label: "Path to multiple data sets folder:"
+    value: ./Data
+    input: text
 bibliography: EIH_modeling.bib
 ---
 
@@ -51,6 +66,10 @@ library(fs)
 library(tcltk)
 library(fossil)
 
+# Run configuration
+analysis_date <- format(Sys.time(), "%Y-%m-%d_%H.%M")
+dir_create(path = paste0("Output/", analysis_date))
+
 # Parameters for the analysis
 new_LGBM_params <- TRUE
 scale_data <- TRUE
@@ -72,14 +91,30 @@ discriminating_variables <- c("saturation_rest",
 
 ```{r Scripts, message=FALSE, warning=FALSE, include=FALSE, paged.print=TRUE}
 # Data to use
-tkmessageBox(title = "Next action", message = "Choose data to analyze.")
-analysis_data <-
-  read.csv(file.choose(),
-           na.strings = c("", " ", "na", "NA"))
+import_na_strings <- c("", " ", "na", "NA")
+if (params$data != "none") {
+  imported_data <-
+    params$data %>%
+    read.csv(na.strings = import_na_strings) %>%
+    lst()
+} else if (params$data_list != "none") {
+  imported_data <-
+    lapply(X = eval(parse(text = params$data_list)),
+           FUN = read.csv,
+           na.strings = import_na_strings)
+} else {
+  imported_data <-
+    list.files(path = parse(text = params$data_folder) %>%
+                 eval(),
+               full.names = TRUE) %>%
+    lapply(read.csv, na.strings = import_na_strings)
+}
 
 # Sourcing scripts
-source("./Scripts/Unsupervised.R")
-source("./Scripts/Supervised.R")
+for (analysis_data in imported_data) {
+  source("./Scripts/Unsupervised.R")
+  source("./Scripts/Supervised.R")
+}
 ```
 
 # Introduction
@@ -175,3 +210,11 @@ lgbm_plot %>%
 # References
 
 <div id="refs"></div>
+
+```{r End_tasks, include=FALSE}
+# dir_copy(path = "./figure/",
+#          new_path = paste0("Output/", analysis_date))
+# dir_delete(path = "./figure/")
+save.image(file = paste0("./Output/", analysis_date, "/global.RData"))
+```
+
