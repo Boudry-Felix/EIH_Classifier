@@ -22,11 +22,7 @@ cluster_data <- # Clean and select usable data
   analysis_data %>%
   select_if(is.numeric) %>%
   select(.data = ., -any_of(discriminating_variables)) %>%
-  select(
-    where(
-      ~!all(is.na(.x))
-    )
-  ) %>%
+  select(where(~ !all(is.na(.x)))) %>%
   missRanger() %>%
   {
     if (scale_data)
@@ -247,24 +243,6 @@ plot_df <-
 ## Creating boxplots
 cluster_columns <- # Select cluster columns
   colnames(x = plot_df[grepl(pattern = "clust", x = colnames(plot_df))])
-
-# Dimensionality reduction ------------------------------------------------
-cluster_data2 <- cluster_data %>%
-  mutate(ID = row_number())
-
-tsne_results <- Rtsne::Rtsne(cluster_data2 %>% scale(), dims = 2, pca = F) %$%
-  .$Y %>%
-  as.data.frame() %>%
-  rename(tSNE1 = "V1", tSNE2 = "V2") %>%
-  mutate(ID = row_number()) %>%
-  inner_join(cluster_data2, by = "ID") %>%
-  left_join(analysis_data %>% mutate(ID = row_number()), by = "ID")
-
-tsne_results %>%
-  ggplot(aes(x = tSNE1,
-             y = tSNE2,
-             color = eih)) +
-  geom_point()
 
 # Plotting boxplots for each variable in each cluster
 cluster_boxplots <- lapply(

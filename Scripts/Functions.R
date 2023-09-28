@@ -144,9 +144,9 @@ gbm_data_partition <- function(input, sep_col, sep_prop) {
   split_indexes <- # Separate data in two using p
     caret::createDataPartition(y = input[[sep_col]], p = sep_prop, list = FALSE)
   train_data <- # Create a train data set
-    input[split_indexes,]
+    input[split_indexes, ]
   test_data <- # Create a test data set
-    input[-split_indexes,]
+    input[-split_indexes, ]
   return(dplyr::lst(train_data, test_data))
 }
 
@@ -177,7 +177,7 @@ lgb.plot.tree <- function(model = NULL,
     stop("tree: has to be less than the number of trees in the model")
   }
   # filter dt to just the rows for the selected tree
-  dt <- dt[tree_index == tree, ]
+  dt <- dt[tree_index == tree,]
   # change the column names to shorter more diagram friendly versions
   data.table::setnames(
     dt,
@@ -202,7 +202,7 @@ lgb.plot.tree <- function(model = NULL,
   dt[, parent := node_parent][is.na(parent), parent := leaf_parent]
   dt[, c('node_parent', 'leaf_parent', 'split_index') := NULL]
   dt[, Yes := dt$ID[match(dt$Node, dt$parent)]]
-  dt <- dt[nrow(dt):1, ]
+  dt <- dt[nrow(dt):1,]
   dt[, No := dt$ID[match(dt$Node, dt$parent)]]
   # which way do the NA's go (this path will get a thicker arrow)
   # for categorical features, NA gets put into the zero group
@@ -335,11 +335,13 @@ project_import <- function(project_path) {
 
     subject_informations <-
       # Import subjects informations and clean column names
-      data.table::fread(file = grep(
-        pattern = "Informations_subjects.*",
-        x = information_files_list,
-        value = TRUE
-      )) %>%
+      data.table::fread(
+        file = grep(
+          pattern = "Informations_subjects.*",
+          x = information_files_list,
+          value = TRUE
+        )
+      ) %>%
       janitor::clean_names()
     test_informations <-
       # Import test informations and clean column names
@@ -350,7 +352,7 @@ project_import <- function(project_path) {
       )) %>%
       janitor::clean_names()
     data_infos <- subject_informations %>% # Merge informations
-      append(x = ., values = test_informations[1, ]) %>%
+      append(x = ., values = test_informations[1,]) %>%
       data.table::as.data.table()
     files_list <- fs::dir_info(my_study, recurse = TRUE) %>%
       dplyr::filter(type == "file")
@@ -397,13 +399,13 @@ project_import <- function(project_path) {
   return(dplyr::lst("data" = imported_data, "infos" = imported_data_infos))
 }
 
-import_data <- function() {
+import_data <- function(tSNE_dims = 2) {
   my_date <- format(Sys.time(), "%Y-%m-%d_%H.%M")
 
   imported_data <-
     project_import(project_path = easycsv::choose_dir())
 
-  infos <- imported_data$infos
+  infos <<- imported_data$infos
   my_data <- imported_data$data %>%
     common_col()
 
@@ -429,12 +431,28 @@ import_data <- function() {
     as.data.frame() %>%
     tibble::rownames_to_column(.data = ., var = "subject")
 
+  tSNE_summary <-
+    Rtsne::Rtsne(
+      summary_simple %>%
+        dplyr::select_if(is.numeric) %>%
+        na.omit() %>%
+        scale(),
+      dims = tSNE_dims,
+      pca = F
+    ) %$%
+    .$Y %>%
+    as.data.frame() %>%
+    dplyr::rename(tSNE1 = "V1", tSNE2 = "V2") %>%
+    dplyr::mutate(ID = dplyr::row_number()) %>%
+    dplyr::inner_join(summary_simple %>%
+                        dplyr::mutate(ID = dplyr::row_number()),
+                      by = "ID")
 
   # Cleaning ----------------------------------------------------------------
   # Removes outliers in summaries
   my_summaries <-
-    dplyr::lst(summary_simple, summary_relative, PCA_summary) %>%
-    `names<-`(value = c("absolute", "relative", "PCA"))
+    dplyr::lst(summary_simple, summary_relative, PCA_summary, tSNE_summary) %>%
+    `names<-`(value = c("absolute", "relative", "PCA", "tSNE"))
 
   # Labelling ---------------------------------------------------------------
   encoded_summaries <- lapply(X = my_summaries, FUN = df_encode)
