@@ -22,11 +22,7 @@ cluster_data <- # Clean and select usable data
   analysis_data %>%
   select_if(is.numeric) %>%
   select(.data = ., -any_of(discriminating_variables)) %>%
-  select(
-    where(
-      ~!all(is.na(.x))
-    )
-  ) %>%
+  select(where(~ !all(is.na(.x)))) %>%
   missRanger() %>%
   {
     if (scale_data)
