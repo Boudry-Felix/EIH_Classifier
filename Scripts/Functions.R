@@ -16,6 +16,26 @@ my_table <- function(input, ...) {
                               full_width = FALSE)
 }
 
+rmd_plot <- function(my_pat) {
+  ls(pattern = paste0(my_pat, "_graph"), envir = my_env) %>%
+    lapply(get, envir = my_env) %>%
+    lapply(marrangeGrob,
+           nrow = 1,
+           ncol = 2,
+           top = NULL) %>%
+    walk(print)
+  ls(pattern = paste0(my_pat, "_confusion"), envir = my_env) %>%
+    lapply(get, envir = my_env)
+}
+
+rmd_plot2 <- function(my_pat) {
+  ls(pattern = paste0(my_pat, "_graph"), envir = my_env) %>%
+    lapply(get, envir = my_env) %>%
+    walk(print)
+  ls(pattern = paste0(my_pat, "_rand"), envir = my_env) %>%
+    lapply(get, envir = my_env)
+}
+
 # Computations ------------------------------------------------------------
 compute_relative <- function(input) {
   maximum_columns <-

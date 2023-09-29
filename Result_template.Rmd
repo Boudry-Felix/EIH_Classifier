@@ -1,0 +1,48 @@
+---
+title: "Result_template"
+author: "Félix Boudry"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
+
+# `r paste("Test")`
+
+## Unsupervised learning
+
+```{r}
+
+kclust_coord %>% walk(print)
+rmd_plot("^kclust")
+rmd_plot("^hclust")
+rmd_plot2("^dbscan")
+rmd_plot2("^optics")
+```
+
+## Supervised learning
+
+```{r LGBM results}
+lgbm_confusion$overall
+
+t(as.data.frame(lgbm_model$params[c(
+  "boosting",
+  "lambda_l1",
+  "lambda_l2",
+  "num_leaves",
+  "max_depth",
+  "feature_fraction",
+  "bagging_fraction",
+  "bagging_freq",
+  "learning_rate"
+)])) %>% my_table()
+lgbm_confusion
+lgbm_importance_plot %>%
+  lgb.plot.importance()
+lgbm_importance_plot %>%
+  lgb.plot.interpretation()
+lgbm_plot %>%
+  walk(print)
+```

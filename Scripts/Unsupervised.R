@@ -236,20 +236,20 @@ plot_df <-
           list(
             cluster_data,
             kclust = lapply(X = kclust_data, FUN = "[[", "cluster"),
-            hclust_td = lapply(X = hclust_bu_data, FUN = "[[", "cluster"),
-            hclust_bu = lapply(X = hclust_td_data, FUN = "[[", "cluster")
-          ))
+            hclust_td = lapply(X = hclust_data_bu, FUN = "[[", "cluster"),
+            hclust_bu = lapply(X = hclust_data_td, FUN = "[[", "cluster")
+          ), envir = .GlobalEnv)
 
 ## Creating boxplots
 cluster_columns <- # Select cluster columns
-  colnames(x = plot_df[grepl(pattern = "clust", x = colnames(plot_df))])
+  colnames(x = .GlobalEnv$plot_df[grepl(pattern = "clust", x = colnames(.GlobalEnv$plot_df))])
 
 # Plotting boxplots for each variable in each cluster
 cluster_boxplots <- lapply(
   X = cluster_columns,
   FUN = \(my_col)
   sapply(
-    X = colnames(plot_df),
+    X = colnames(.GlobalEnv$plot_df),
     FUN = boxplots_by_clust,
     cluster_col = my_col,
     simplify = FALSE,

@@ -35,7 +35,7 @@ params:
     label: "Path to multiple data sets folder:"
     value: ./Data
     input: text
-bibliography: EIH_modeling.bib
+# bibliography: EIH_modeling.bib
 ---
 
 ```{r Setup, echo=FALSE, message=FALSE, warning=FALSE}
@@ -114,25 +114,33 @@ if (params$data != "none") {
     lapply(read.csv, na.strings = import_na_strings)
 }
 
-# Import files without knit for test purpose
-
-# fileloc <- c("Data/absolute.csv", "Data/relative.csv")
-# imported_data_names <- basename(fileloc) %>% tools::file_path_sans_ext()
-# imported_data <- lapply(fileloc, read.csv) %>% `names<-`(imported_data_names)
-
 # Sourcing scripts
+my_envs <- lst()
+compute_counter <- 1
+
+for (analysis_data in imported_data) {
+  assign(x = paste0(names(imported_data[compute_counter]), "_env"), value = new.env())
+  bib <- paste0(names(imported_data[compute_counter]), "_env")
+  my_envs <-
+    append(x = my_envs, values = setNames(c(get(
+      paste0(names(imported_data[compute_counter]), "_env")
+    )), bib))
+  compute_counter <- compute_counter + 1
+}
+
 compute_counter <- 1
 for (analysis_data in imported_data) {
-  tmp_env <- new.env()
+  # tmp_env <- new.env()
   data_set_name <- imported_data_names[compute_counter]
-  source("./Scripts/Unsupervised.R", local = tmp_env)
+  compute_env <- my_envs[[compute_counter]]
+  source("./Scripts/Unsupervised.R", local = compute_env)
   # source("./Scripts/Supervised.R", local = tmp_env)
   
-  old_names <- ls(envir = tmp_env)
-  for (old_name in old_names) {
-    new_name <- paste(old_name, data_set_name, sep = "_")
-    assign(x = new_name, value = get(old_name, envir = tmp_env))
-  }
+  # old_names <- ls(envir = env_name)
+  # for (old_name in old_names) {
+  #   new_name <- paste(old_name, data_set_name, sep = "_")
+  #   assign(x = new_name, value = get(old_name, envir = env_name))
+  # }
   compute_counter <- compute_counter + 1
 }
 ```
@@ -180,65 +188,14 @@ describe(x = analysis_data[c("train_years",
 
 # Results
 
-## Unsupervised learning
-
-```{r Clustering results}
-my_plot <- function(my_pat) {
-  ls(pattern = paste0(my_pat, "_graph"), envir = .GlobalEnv) %>%
-    lapply(get) %>%
-    lapply(marrangeGrob,
-           nrow = 1,
-           ncol = 2,
-           top = NULL) %>% 
-    walk(print)
-  ls(pattern = paste0(my_pat, "_confusion"), envir = .GlobalEnv) %>%
-    lapply(get)
+```{r Results, echo=FALSE, results='asis'}
+# source_rmd("Result_template.Rmd") 
+for (my_env in my_envs) {
+  cat(
+  knitr::knit_child('Result_template.Rmd', envir = my_env, quiet = TRUE)
+  )
 }
 
-my_plot2 <- function(my_pat) {
-  ls(pattern = paste0(my_pat, "_graph"), envir = .GlobalEnv) %>%
-    lapply(get) %>% 
-    walk(print)
-  ls(pattern = paste0(my_pat, "_rand"), envir = .GlobalEnv) %>%
-    lapply(get)
-}
-
-ls(pattern = "^kclust_coord", envir = .GlobalEnv) %>%
-    lapply(get) %>% 
-    lapply(marrangeGrob,
-           nrow = 1,
-           ncol = 2,
-           top = NULL) %>%
-    walk(print)
-my_plot("^kclust")
-my_plot("^hclust")
-my_plot2("^dbscan")
-my_plot2("^optics")
-```
-
-## Supervised learning
-
-```{r LGBM results}
-lgbm_confusion$overall
-
-t(as.data.frame(lgbm_model$params[c(
-  "boosting",
-  "lambda_l1",
-  "lambda_l2",
-  "num_leaves",
-  "max_depth",
-  "feature_fraction",
-  "bagging_fraction",
-  "bagging_freq",
-  "learning_rate"
-)])) %>% my_table()
-lgbm_confusion
-lgbm_importance_plot %>%
-  lgb.plot.importance()
-lgbm_importance_plot %>%
-  lgb.plot.interpretation()
-lgbm_plot %>%
-  walk(print)
 ```
 
 # References
