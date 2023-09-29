@@ -24,8 +24,8 @@ rmd_plot2("^optics")
 
 ## Supervised learning
 
-```{r LGBM results}
-lgbm_confusion$overall
+```{r}
+lgbm_confusion$overall %>% print()
 
 t(as.data.frame(lgbm_model$params[c(
   "boosting",

@@ -5,6 +5,9 @@ import sklearn.metrics
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 import lightgbm as lgb
+import rpy2.robjects as robj
+
+# rdata = robj.r["compute_env"]
 
 def objective(trial):
     train_x = pd.DataFrame(r.lgbm_train_data["values"])

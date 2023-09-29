@@ -27,7 +27,7 @@ gbm_data <- gbm_data %>%
                      sep_prop = lgbm_split)
 
 ## Light GBM analysis -----------------------------------------------------
-lgbm_train_data <-
+compute_env$lgbm_train_data <-
   split.default(x = gbm_data$train_data,
                 f = names(gbm_data$train_data) == "eih") %>%
   `names<-`(value = c("values", "label"))
@@ -46,6 +46,9 @@ lgbm_dtest <- lgb.Dataset.create.valid(
 )
 
 ### Configure -------------------------------------------------------------
+
+lgbm_train_data <<- compute_env$lgbm_train_data
+lgbm_test_data <<- compute_env$lgbm_test_data
 if (new_LGBM_params) {
   source_python("./Scripts/Hyperparameters_tune.py")
   my_params <- study$best_params %>%
