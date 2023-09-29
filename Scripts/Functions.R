@@ -129,8 +129,8 @@ optimal_clust <- function(input_data, cluster_method) {
   return(cluster_number_graph)
 }
 
-boxplots_by_clust <- function(data_col, cluster_col) {
-  ggplot2::ggplot(plot_df, aes(x = !!sym(cluster_col), y = !!sym(paste(data_col)))) +
+boxplots_by_clust <- function(data_col, cluster_col, used_env) {
+  ggplot2::ggplot(plot_df, aes(x = !!sym(cluster_col), y = !!sym(paste(data_col))), environment = used_env) +
     ggplot2::geom_boxplot(aes(
       group = !!sym(cluster_col),
       fill = as.factor(!!sym(cluster_col))

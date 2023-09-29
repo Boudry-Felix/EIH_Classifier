@@ -47,7 +47,7 @@ kclust_data <-
            graph = FALSE
          )) %>%
   `names<-`(value = cluster_number_names)
-hclust_bu_data <-
+hclust_data_bu <-
   lapply(
     cluster_number,
     \(x)
@@ -60,7 +60,7 @@ hclust_bu_data <-
     )
   ) %>%
   `names<-`(value = cluster_number_names)
-hclust_td_data <-
+hclust_data_td <-
   lapply(
     cluster_number,
     \(x)
@@ -100,7 +100,7 @@ kclust_confusion <-
       analysis_data$eih_severity %>% as.data.frame()
     )
   )
-hclust_bu_confusion <-
+hclust_confusion_bu <-
   mapply(
     function(x, y) {
       confusionMatrix(x[["cluster"]] %>% as.factor(),
@@ -109,13 +109,13 @@ hclust_bu_confusion <-
                         as.factor() %>%
                         rev())
     } %>% list,
-    x = hclust_bu_data,
+    x = hclust_data_bu,
     y = c(
       analysis_data$eih %>% as.data.frame(),
       analysis_data$eih_severity %>% as.data.frame()
     )
   )
-hclust_td_confusion <-
+hclust_confusion_td <-
   mapply(
     function(x, y) {
       confusionMatrix(x[["cluster"]] %>% as.factor(),
@@ -124,7 +124,7 @@ hclust_td_confusion <-
                         as.factor() %>%
                         rev())
     } %>% list,
-    x = hclust_td_data,
+    x = hclust_data_td,
     y = c(
       analysis_data$eih %>% as.data.frame(),
       analysis_data$eih_severity %>% as.data.frame()
@@ -169,7 +169,7 @@ kclust_graph <-
 kclust_coord <-
   lapply(X = kclust_data, FUN = plot_clus_coord, data = cluster_data) %>%
   `names<-`(value = cluster_number_names)
-hclust_bu_graph <- lapply(X = hclust_bu_data,
+hclust_graph_bu <- lapply(X = hclust_data_bu,
                           function(x) {
                             if (length(unique(x[["cluster"]])) == 2)
                             {
@@ -194,7 +194,7 @@ hclust_bu_graph <- lapply(X = hclust_bu_data,
                             )
                           }) %>%
   `names<-`(value = cluster_number_names)
-hclust_td_graph <- lapply(X = hclust_td_data,
+hclust_graph_td <- lapply(X = hclust_data_td,
                           function(x) {
                             if (length(unique(x[["cluster"]])) == 2)
                             {

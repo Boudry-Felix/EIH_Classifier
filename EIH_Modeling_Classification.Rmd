@@ -48,6 +48,7 @@ knitr::opts_chunk$set(
 
 # Import libraries
 source("./Scripts/Functions.R")
+library(data.table)
 library(tidyverse)
 library(factoextra)
 library(dbscan)
@@ -93,16 +94,19 @@ discriminating_variables <- c("saturation_rest",
 # Data to use
 import_na_strings <- c("", " ", "na", "NA")
 if (params$data != "none") {
+  imported_data_names <- basename(params$data) %>% tools::file_path_sans_ext()
   imported_data <-
     params$data %>%
     read.csv(na.strings = import_na_strings) %>%
     lst()
 } else if (params$data_list != "none") {
+  imported_data_names <- basename(params$data_list) %>% tools::file_path_sans_ext()
   imported_data <-
     lapply(X = eval(parse(text = params$data_list)),
            FUN = read.csv,
            na.strings = import_na_strings)
 } else {
+  imported_data_names <- basename(params$data_folder) %>% tools::file_path_sans_ext()
   imported_data <-
     list.files(path = parse(text = params$data_folder) %>%
                  eval(),
@@ -110,10 +114,26 @@ if (params$data != "none") {
     lapply(read.csv, na.strings = import_na_strings)
 }
 
+# Import files without knit for test purpose
+
+# fileloc <- c("Data/absolute.csv", "Data/relative.csv")
+# imported_data_names <- basename(fileloc) %>% tools::file_path_sans_ext()
+# imported_data <- lapply(fileloc, read.csv) %>% `names<-`(imported_data_names)
+
 # Sourcing scripts
+compute_counter <- 1
 for (analysis_data in imported_data) {
-  source("./Scripts/Unsupervised.R")
-  source("./Scripts/Supervised.R")
+  tmp_env <- new.env()
+  data_set_name <- imported_data_names[compute_counter]
+  source("./Scripts/Unsupervised.R", local = tmp_env)
+  # source("./Scripts/Supervised.R", local = tmp_env)
+  
+  old_names <- ls(envir = tmp_env)
+  for (old_name in old_names) {
+    new_name <- paste(old_name, data_set_name, sep = "_")
+    assign(x = new_name, value = get(old_name, envir = tmp_env))
+  }
+  compute_counter <- compute_counter + 1
 }
 ```
 
@@ -163,23 +183,37 @@ describe(x = analysis_data[c("train_years",
 ## Unsupervised learning
 
 ```{r Clustering results}
-cluster_number_graph %>%
-  marrangeGrob(ncol = 2, nrow = 2, top = NULL)
-kclust_confusion
-hclust_bu_confusion
-hclust_td_confusion
-dbscan_rand
-optics_rand
-kclust_graph %>%
-  marrangeGrob(ncol = 2, nrow = 1, top = NULL)
-kclust_coord %>%
-  marrangeGrob(ncol = 1, nrow = 2, top = NULL)
-hclust_bu_graph %>%
-  marrangeGrob(ncol = 2, nrow = 1, top = NULL)
-hclust_td_graph %>%
-  marrangeGrob(ncol = 2, nrow = 1, top = NULL)
-dbscan_graph
-optics_graph
+my_plot <- function(my_pat) {
+  ls(pattern = paste0(my_pat, "_graph"), envir = .GlobalEnv) %>%
+    lapply(get) %>%
+    lapply(marrangeGrob,
+           nrow = 1,
+           ncol = 2,
+           top = NULL) %>% 
+    walk(print)
+  ls(pattern = paste0(my_pat, "_confusion"), envir = .GlobalEnv) %>%
+    lapply(get)
+}
+
+my_plot2 <- function(my_pat) {
+  ls(pattern = paste0(my_pat, "_graph"), envir = .GlobalEnv) %>%
+    lapply(get) %>% 
+    walk(print)
+  ls(pattern = paste0(my_pat, "_rand"), envir = .GlobalEnv) %>%
+    lapply(get)
+}
+
+ls(pattern = "^kclust_coord", envir = .GlobalEnv) %>%
+    lapply(get) %>% 
+    lapply(marrangeGrob,
+           nrow = 1,
+           ncol = 2,
+           top = NULL) %>%
+    walk(print)
+my_plot("^kclust")
+my_plot("^hclust")
+my_plot2("^dbscan")
+my_plot2("^optics")
 ```
 
 ## Supervised learning
