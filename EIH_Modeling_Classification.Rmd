@@ -122,47 +122,50 @@ library(missRanger)
 library(fs)
 library(tcltk)
 library(fossil)
+library(tools)
 
-# Run configuration
+# Create a folder to save results
 analysis_date <- format(Sys.time(), "%Y-%m-%d_%H.%M")
 dir_create(path = paste0("Output/", analysis_date))
 
 # Parameters for the analysis
+## Parameters used in python script needs to be directly in .GlobalEnv
+optuna_rounds <- params$optuna_rounds
+optuna_trials <- params$optuna_trials
+## Parsing and evaluating strings used as parameters to be used as code
 cluster_number <-
   params$cluster_number %>% parse(text = .) %>% eval()
 cluster_number_names <-
   params$cluster_number_names %>% parse(text = .) %>% eval()
-optuna_rounds <- params$optuna_rounds
-optuna_trials <- params$optuna_trials
 discriminating_variables <-
   params$discriminating_variables %>% parse(text = .) %>% eval()
 ```
 
 ```{r Import & scripts, message=FALSE, warning=FALSE, include=FALSE, paged.print=TRUE}
 # Import selected dataset
-import_na_strings <- c("", " ", "na", "NA")
+my_na_strings <- c("", " ", "na", "NA")
 if (params$data != "none") {
   imported_data_names <-
-    basename(params$data) %>% tools::file_path_sans_ext()
+    basename(params$data) %>% file_path_sans_ext()
   imported_data <-
     params$data %>%
-    read.csv(na.strings = import_na_strings) %>%
+    fread(na.strings = my_na_strings) %>%
     lst()
 } else if (params$data_list != "none") {
   imported_data_names <-
-    basename(params$data_list) %>% tools::file_path_sans_ext()
+    basename(params$data_list) %>% file_path_sans_ext()
   imported_data <-
     lapply(X = eval(parse(text = params$data_list)),
-           FUN = read.csv,
-           na.strings = import_na_strings)
+           FUN = fread,
+           na.strings = my_na_strings)
 } else {
   imported_data_names <-
-    basename(params$data_folder) %>% tools::file_path_sans_ext()
+    basename(params$data_folder) %>% file_path_sans_ext()
   imported_data <-
     list.files(path = parse(text = params$data_folder) %>%
                  eval(),
                full.names = TRUE) %>%
-    lapply(read.csv, na.strings = import_na_strings)
+    lapply(fread, na.strings = my_na_strings)
 }
 
 # Create environments (one per dataset, used for results storage)
