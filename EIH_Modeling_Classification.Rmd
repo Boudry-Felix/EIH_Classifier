@@ -35,6 +35,62 @@ params:
     label: "Path to multiple data sets folder:"
     value: ./Data
     input: text
+  new_LGBM_params:
+    label: "Tune hyperparameters?"
+    value: TRUE
+    input: checkbox
+  scale_data:
+    label: "Scale data?"
+    value: TRUE
+    input: checkbox
+  cluster_number:
+    label: "Numbers of clusters to compute:"
+    value: c(2, 4)
+    input: text
+  cluste_number_names:
+    label: "Names of the clusters:"
+    value: c("two", "four")
+    input: text
+  dbscan_eps:
+    label: "eps for DBSCAN clustering:"
+    value: 10
+    input: numeric
+  dbscan_minPts:
+    label: "Minimum number of points to create a cluster (DBSCAN):"
+    value: 3
+    input: numeric
+  optics_eps:
+    label: "eps for OPTICS clustering:"
+    value: 250
+    input: numeric
+  optics_minPts:
+    label: "Minimum number of points to create a cluster (OPTICS):"
+    value: 5
+    input: numeric
+  optics_xi:
+    label: "xi to compute clusters (OPTICS):"
+    value: 0.1
+    input: numeric
+  lgbm_rounds:
+    label: "Number of rounds for LGBM training:"
+    value: 500
+    input: numeric
+  lgbm_split:
+    label: "Percentage of data used to train LGBM:"
+    value: 0.65
+    input: numeric
+  optuna_rounds:
+    label: "Number of rounds for LGBM training (Optuna tunning):"
+    value: 200
+    input: numeric
+  optuna_trials:
+    label: "Number of trials for hyperparameters tunning (Optuna):"
+    value: 200
+    input: numeric
+  discriminating_variables:
+    label: "Variables to predict and/or to exclude from clustering and training:"
+    value: c("saturation_rest", "saturation_end", "saturation_delta")
+    input: text
 bibliography: EIH_modeling.bib
 ---
 
@@ -72,26 +128,18 @@ analysis_date <- format(Sys.time(), "%Y-%m-%d_%H.%M")
 dir_create(path = paste0("Output/", analysis_date))
 
 # Parameters for the analysis
-new_LGBM_params <- TRUE
-scale_data <- TRUE
-cluster_number <- c(2, 4)
-cluster_number_names <- list("two", "four")
-dbscan_eps <- 10
-dbscan_minPts <- 3
-optics_eps <- 250
-optics_minPts <- 5
-optics_xi <- 0.1
-lgbm_rounds <- 500
-lgbm_split <- 0.65
-optuna_rounds <- 200
-optuna_trials <- 200
-discriminating_variables <- c("saturation_rest",
-                              "saturation_end",
-                              "saturation_delta")
+cluster_number <-
+  params$cluster_number %>% parse(text = .) %>% eval()
+cluster_number_names <-
+  params$cluster_number_names %>% parse(text = .) %>% eval()
+optuna_rounds <- params$optuna_rounds
+optuna_trials <- params$optuna_trials
+discriminating_variables <-
+  params$discriminating_variables %>% parse(text = .) %>% eval()
 ```
 
-```{r Scripts, message=FALSE, warning=FALSE, include=FALSE, paged.print=TRUE}
-# Data to use
+```{r Import & scripts, message=FALSE, warning=FALSE, include=FALSE, paged.print=TRUE}
+# Import selected dataset
 import_na_strings <- c("", " ", "na", "NA")
 if (params$data != "none") {
   imported_data_names <-
@@ -117,10 +165,9 @@ if (params$data != "none") {
     lapply(read.csv, na.strings = import_na_strings)
 }
 
-# Sourcing scripts
+# Create environments (one per dataset, used for results storage)
 my_envs <- lst()
 compute_counter <- 1
-
 for (analysis_data in imported_data) {
   assign(x = paste0(names(imported_data[compute_counter]), "_env"), value = new.env())
   bib <- paste0(names(imported_data[compute_counter]), "_env")
@@ -130,7 +177,7 @@ for (analysis_data in imported_data) {
     )), bib))
   compute_counter <- compute_counter + 1
 }
-
+# Source scripts for analysis
 compute_counter <- 1
 for (analysis_data in imported_data) {
   data_set_name <- imported_data_names[compute_counter]
@@ -166,28 +213,20 @@ physiopathology impact athlete's performances is the exercise-induces hypoxemia
 able to classify athletes as EIH or NEIH without using the direct indicator
 (saturation).
 
-# Methods
+# Material and methods
 
 ## Subjects
 
-```{r Subjects}
+```{r Material and methods}
 describe(x = analysis_data[c("age",
                              "height",
-                             "weight")] , na.rm = T) %>%
+                             "weight",
+                             "train_years",
+                             "train_volume")] , na.rm = T) %>%
   select(c("mean", "sd", "median", "min", "max")) %>%
   my_table(
     caption = paste0(
       "<center><strong>Anthropological values (n = ",
-      nrow(analysis_data) ,
-      ")</center></strong>"
-    )
-  )
-describe(x = analysis_data[c("train_years",
-                             "train_volume")], na.rm = T) %>%
-  select(c("mean", "sd", "median", "min", "max")) %>%
-  my_table(
-    caption = paste0(
-      "<center><strong>Données d'entraînement des athlètes (n = ",
       nrow(analysis_data) ,
       ")</center></strong>"
     )
@@ -210,9 +249,6 @@ for (my_env in my_envs) {
 <div id="refs"></div>
 
 ```{r End_tasks, include=FALSE}
-dir_copy(path = "./EIH_Modeling_Classification_files/figure-html/",
-         new_path = paste0("Output/", analysis_date))
-# dir_delete(path = "./figure/")
-save.image(file = paste0("./Output/", analysis_date, "/global.RData"))
+result_save()
 ```
 

@@ -24,7 +24,7 @@ gbm_data$eih <- as.numeric(gbm_data$eih %>% as.factor()) - 1
 gbm_data <- gbm_data %>%
   select(.data = ., -any_of(c("sujet", "subject", "sex", "eih_severity"))) %>%
   gbm_data_partition(sep_col = "eih",
-                     sep_prop = lgbm_split)
+                     sep_prop = params$lgbm_split)
 
 ## Light GBM analysis -----------------------------------------------------
 compute_env$lgbm_train_data <-
@@ -49,7 +49,7 @@ lgbm_dtest <- lgb.Dataset.create.valid(
 
 lgbm_train_data <<- compute_env$lgbm_train_data
 lgbm_test_data <<- compute_env$lgbm_test_data
-if (new_LGBM_params) {
+if (params$new_LGBM_params) {
   source_python("./Scripts/Hyperparameters_tune.py")
   my_params <- study$best_params %>%
     lapply(FUN = gsub,
@@ -75,7 +75,7 @@ lgbm_model <- lgb.train(
   # Train model
   params = lgbm_params,
   data = lgbm_dtrain,
-  nrounds = lgbm_rounds,
+  nrounds = params$lgbm_rounds,
   valids = lgbm_valids
 )
 

@@ -25,7 +25,7 @@ cluster_data <- # Clean and select usable data
   select(where(~ !all(is.na(.x)))) %>%
   missRanger() %>%
   {
-    if (scale_data)
+    if (params$scale_data)
       scale(x = .) %>% as.data.frame()
     else
       .
@@ -75,13 +75,13 @@ hclust_data_td <-
   `names<-`(value = cluster_number_names)
 dbscan_data <-
   dbscan(x = cluster_data,
-         eps = dbscan_eps,
-         minPts = dbscan_minPts)
+         eps = params$dbscan_eps,
+         minPts = params$dbscan_minPts)
 optics_data <-
   optics(x = cluster_data,
-         eps = optics_eps,
-         minPts = optics_minPts) %>%
-  extractXi(xi = optics_xi)
+         eps = params$optics_eps,
+         minPts = params$optics_minPts) %>%
+  extractXi(xi = params$optics_xi)
 
 ## Result accuracy --------------------------------------------------------
 ## Compute confusion matrix to assert accuracy
@@ -232,13 +232,16 @@ optics_graph <- recordPlot()
 
 ## Adding cluster group to data
 plot_df <-
-  do.call("cbind",
-          list(
-            cluster_data,
-            kclust = lapply(X = kclust_data, FUN = "[[", "cluster"),
-            hclust_td = lapply(X = hclust_data_bu, FUN = "[[", "cluster"),
-            hclust_bu = lapply(X = hclust_data_td, FUN = "[[", "cluster")
-          ), envir = .GlobalEnv)
+  do.call(
+    "cbind",
+    list(
+      cluster_data,
+      kclust = lapply(X = kclust_data, FUN = "[[", "cluster"),
+      hclust_td = lapply(X = hclust_data_bu, FUN = "[[", "cluster"),
+      hclust_bu = lapply(X = hclust_data_td, FUN = "[[", "cluster")
+    ),
+    envir = .GlobalEnv
+  )
 
 ## Creating boxplots
 cluster_columns <- # Select cluster columns
