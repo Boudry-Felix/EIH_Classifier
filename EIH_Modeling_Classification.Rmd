@@ -11,17 +11,6 @@ output:
     number_section: yes
     fig_caption: yes
     keep_md: yes
-  word_document:
-    toc: yes
-    number_sections: 4
-    fig_caption: yes
-  pdf_document:
-    toc: yes
-    toc_depth: 4
-    number_sections: yes
-    fig_caption: yes
-    df_print: kable
-    keep_md: yes
 params:
   data:
     label: "Input dataset:"
@@ -41,6 +30,10 @@ params:
     input: checkbox
   scale_data:
     label: "Scale data?"
+    value: TRUE
+    input: checkbox
+  combine_plots:
+    label: "Combine plots by condition?"
     value: TRUE
     input: checkbox
   cluster_number:
@@ -153,7 +146,7 @@ if (params$data != "none") {
     lst()
 } else if (params$data_list != "none") {
   imported_data_names <-
-    basename(params$data_list) %>% file_path_sans_ext()
+    params$data_list %>% parse(text = .) %>% eval() %>% basename() %>% file_path_sans_ext()
   imported_data <-
     lapply(X = eval(parse(text = params$data_list)),
            FUN = fread,
@@ -183,7 +176,6 @@ for (analysis_data in imported_data) {
 # Source scripts for analysis
 compute_counter <- 1
 for (analysis_data in imported_data) {
-  data_set_name <- imported_data_names[compute_counter]
   compute_env <- my_envs[[compute_counter]]
   source("./Scripts/Unsupervised.R", local = compute_env)
   source("./Scripts/Supervised.R", local = compute_env)
@@ -218,31 +210,16 @@ able to classify athletes as EIH or NEIH without using the direct indicator
 
 # Material and methods
 
-## Subjects
-
-```{r Material and methods}
-describe(x = analysis_data[c("age",
-                             "height",
-                             "weight",
-                             "train_years",
-                             "train_volume")] , na.rm = T) %>%
-  select(c("mean", "sd", "median", "min", "max")) %>%
-  my_table(
-    caption = paste0(
-      "<center><strong>Anthropological values (n = ",
-      nrow(analysis_data) ,
-      ")</center></strong>"
-    )
-  )
-```
-
 # Results
 
 ```{r Results, echo=FALSE, results='asis'}
+compute_counter <- 1
 for (my_env in my_envs) {
+  data_set_name <- imported_data_names[compute_counter]
   cat(
   knitr::knit_child('Result_template.Rmd', envir = my_env, quiet = TRUE)
   )
+  compute_counter <- compute_counter + 1
 }
 
 ```

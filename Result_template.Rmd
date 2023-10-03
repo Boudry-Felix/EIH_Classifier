@@ -9,12 +9,29 @@ output: html_document
 knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 ```
 
-# `r paste("Test")`
-
-## Unsupervised learning
+## `r paste(.GlobalEnv$data_set_name)`
 
 ```{r}
+analysis_data <- as.data.frame(analysis_data)
+describe(x = analysis_data[c("age",
+                             "height",
+                             "weight",
+                             "train_years",
+                             "train_volume")] , na.rm = T) %>%
+  round() %>%
+  select(c("mean", "sd", "median", "min", "max")) %>%
+  my_table(
+    caption = paste0(
+      "<center><strong>Anthropological values (n = ",
+      nrow(analysis_data) ,
+      ")</center></strong>"
+    )
+  )
+```
 
+### Unsupervised learning
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 kclust_coord %>% walk(print)
 rmd_plot("^kclust")
 rmd_plot("^hclust")
@@ -22,7 +39,7 @@ rmd_plot2("^dbscan")
 rmd_plot2("^optics")
 ```
 
-## Supervised learning
+### Supervised learning
 
 ```{r}
 lgbm_confusion$overall %>% print()

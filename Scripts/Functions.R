@@ -19,11 +19,20 @@ my_table <- function(input, ...) {
 rmd_plot <- function(my_pat) {
   ls(pattern = paste0(my_pat, "_graph"), envir = my_env) %>%
     lapply(get, envir = my_env) %>%
-    lapply(marrangeGrob,
-           nrow = 1,
-           ncol = 2,
-           top = NULL) %>%
-    walk(print)
+    {
+      if (params$combine_plots) {
+        lapply(
+          X = .,
+          FUN = marrangeGrob,
+          nrow = 1,
+          ncol = 2,
+          top = NULL
+        )
+      } else {
+        .
+      }
+    } %>%
+    purrr::walk(print)
   ls(pattern = paste0(my_pat, "_confusion"), envir = my_env) %>%
     lapply(get, envir = my_env)
 }
