@@ -22,7 +22,11 @@ params:
     input: text
   data_folder:
     label: "Path to multiple data sets folder:"
-    value: ./Data
+    value: "./Data"
+    input: text
+  na_strings:
+    label: "Strings to consider as \"NA\""
+    value: c("", " ", "na", "NA")
     input: text
   new_LGBM_params:
     label: "Tune hyperparameters?"
@@ -127,59 +131,67 @@ optuna_rounds <- params$optuna_rounds
 optuna_trials <- params$optuna_trials
 ## Parsing and evaluating strings used as parameters to be used as code
 cluster_number <-
-  params$cluster_number %>% parse(text = .) %>% eval()
+  get_knit_param(params$cluster_number)
 cluster_number_names <-
-  params$cluster_number_names %>% parse(text = .) %>% eval()
+  get_knit_param(params$cluste_number_names)
 discriminating_variables <-
-  params$discriminating_variables %>% parse(text = .) %>% eval()
+  get_knit_param(params$discriminating_variables)
+my_na_strings <- get_knit_param(params$na_strings)
 ```
 
 ```{r Import & scripts, message=FALSE, warning=FALSE, include=FALSE, paged.print=TRUE}
 # Import selected dataset
-my_na_strings <- c("", " ", "na", "NA")
 if (params$data != "none") {
   imported_data_names <-
-    basename(params$data) %>% file_path_sans_ext()
+    basename(params$data) %>%
+    file_path_sans_ext()
   imported_data <-
     params$data %>%
     fread(na.strings = my_na_strings) %>%
-    lst()
+    lst() %>%
+    `names<-`(value = imported_data_names)
 } else if (params$data_list != "none") {
   imported_data_names <-
-    params$data_list %>% parse(text = .) %>% eval() %>% basename() %>% file_path_sans_ext()
+    params$data_list %>%
+    get_knit_param() %>% 
+    basename() %>%
+    file_path_sans_ext()
   imported_data <-
-    lapply(X = eval(parse(text = params$data_list)),
-           FUN = fread,
-           na.strings = my_na_strings)
+    lapply(
+      X = params$data_list %>%
+        get_knit_param(),
+      FUN = fread,
+      na.strings = my_na_strings
+    ) %>%
+    `names<-`(value = imported_data_names)
 } else {
   imported_data_names <-
-    basename(params$data_folder) %>% file_path_sans_ext()
+    params$data_folder %>%
+    list.files() %>%
+    file_path_sans_ext()
   imported_data <-
-    list.files(path = parse(text = params$data_folder) %>%
-                 eval(),
+    list.files(path = params$data_folder,
                full.names = TRUE) %>%
-    lapply(fread, na.strings = my_na_strings)
+    lapply(fread, na.strings = my_na_strings) %>%
+    `names<-`(value = imported_data_names)
 }
 
 # Create environments (one per dataset, used for results storage)
-my_envs <- lst()
-compute_counter <- 1
-for (analysis_data in imported_data) {
-  assign(x = paste0(names(imported_data[compute_counter]), "_env"), value = new.env())
-  bib <- paste0(names(imported_data[compute_counter]), "_env")
-  my_envs <-
-    append(x = my_envs, values = setNames(c(get(
-      paste0(names(imported_data[compute_counter]), "_env")
-    )), bib))
-  compute_counter <- compute_counter + 1
-}
+my_envs <- lapply(X = imported_data_names, FUN = \(df_name) {
+  my_name <- df_name
+  df_name <- paste0(df_name, "_env") %>%
+    assign(value = new.env())
+  assign(x = "name", value = my_name, envir = df_name)
+  return(df_name)
+}) %>%
+  `names<-`(value = imported_data_names)
+
 # Source scripts for analysis
-compute_counter <- 1
-for (analysis_data in imported_data) {
-  compute_env <- my_envs[[compute_counter]]
+for (df_name in imported_data_names) {
+  analysis_data <- imported_data[[df_name]]
+  compute_env <- my_envs[[df_name]]
   source("./Scripts/Unsupervised.R", local = compute_env)
   source("./Scripts/Supervised.R", local = compute_env)
-  compute_counter <- compute_counter + 1
 }
 ```
 
@@ -208,20 +220,10 @@ physiopathology impact athlete's performances is the exercise-induces hypoxemia
 able to classify athletes as EIH or NEIH without using the direct indicator
 (saturation).
 
-# Material and methods
-
-# Results
-
 ```{r Results, echo=FALSE, results='asis'}
-compute_counter <- 1
 for (my_env in my_envs) {
-  data_set_name <- imported_data_names[compute_counter]
-  cat(
-  knitr::knit_child('Result_template.Rmd', envir = my_env, quiet = TRUE)
-  )
-  compute_counter <- compute_counter + 1
+  cat(knitr::knit_child('Result_template.Rmd', envir = my_env, quiet = TRUE))
 }
-
 ```
 
 # References
@@ -231,4 +233,3 @@ for (my_env in my_envs) {
 ```{r End_tasks, include=FALSE}
 result_save()
 ```
-

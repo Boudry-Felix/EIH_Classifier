@@ -16,6 +16,12 @@ my_table <- function(input, ...) {
                               full_width = FALSE)
 }
 
+get_knit_param <- function(input){
+  output <- parse(text = input) %>%
+    eval()
+  return(output)
+}
+
 rmd_plot <- function(my_pat) {
   ls(pattern = paste0(my_pat, "_graph"), envir = my_env) %>%
     lapply(get, envir = my_env) %>%
@@ -503,16 +509,9 @@ result_save <- function() {
 # Export ------------------------------------------------------------------
 # Export data functions
 lgbm_export <-
-  function(study,
-           # name_seq,
-           lgbm_model_results) {
-    saveRDS(
-      object = as.list(study[["best_params"]]),
-      file = paste0("Output/",
-                    analysis_date,
-                    "/params/Bast_params",
-                    ".rds")
-    )
+  function(#study,
+    # name_seq,
+    lgbm_model_results) {
     saveRDS(
       object = lgbm_model_results,
       file = paste0("Output/",
@@ -520,11 +519,20 @@ lgbm_export <-
                     "/params/LightGBM_model",
                     ".rds")
     )
-    saveRDS(
-      object = study,
-      file = paste0("Output/",
-                    analysis_date,
-                    "/params/Optuna_study",
-                    ".rds")
-    )
+    if (exists("study")) {
+      saveRDS(
+        object = as.list(study[["best_params"]]),
+        file = paste0("Output/",
+                      analysis_date,
+                      "/params/Best_params",
+                      ".rds")
+      )
+      saveRDS(
+        object = study,
+        file = paste0("Output/",
+                      analysis_date,
+                      "/params/Optuna_study",
+                      ".rds")
+      )
+    }
   }

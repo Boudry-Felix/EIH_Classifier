@@ -9,7 +9,9 @@ output: html_document
 knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 ```
 
-## `r paste(.GlobalEnv$data_set_name)`
+# `r paste(my_env$name)`
+
+## Material and methods
 
 ```{r}
 analysis_data <- as.data.frame(analysis_data)
@@ -28,6 +30,8 @@ describe(x = analysis_data[c("age",
     )
   )
 ```
+
+## Results
 
 ### Unsupervised learning
 
