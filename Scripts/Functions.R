@@ -16,7 +16,7 @@ my_table <- function(input, ...) {
                               full_width = FALSE)
 }
 
-get_knit_param <- function(input){
+get_knit_param <- function(input) {
   output <- parse(text = input) %>%
     eval()
   return(output)
@@ -39,8 +39,39 @@ rmd_plot <- function(my_pat) {
       }
     } %>%
     purrr::walk(print)
-  ls(pattern = paste0(my_pat, "_confusion"), envir = my_env) %>%
-    lapply(get, envir = my_env)
+}
+
+confusion_export <- function(my_pat) {
+  my_result <-
+    ls(pattern = paste0(my_pat, "_confusion"), envir = my_env) %>%
+    get(envir = my_env)
+  z <- lst()
+  z$table <-
+    my_result$table %>% as.table() %>% my_table(row.names = TRUE, caption = "Confusion matrix")
+  z$overall <-
+    my_result$overall %>% as.matrix() %>% my_table(caption = "Precision metrics")
+  z$class <-
+    my_result$byClass %>% as.matrix() %>% my_table(caption = "Metrics by class")
+  walk(z, print)
+}
+
+confusion_list_export <- function(my_pat) {
+  my_result <-
+    ls(pattern = paste0(my_pat, "_confusion"), envir = my_env) %>%
+    get(envir = my_env) %>%
+    lapply(FUN = \(x) {
+      z <- lst()
+      z$table <-
+        x$table %>% as.table() %>% my_table(row.names = TRUE, caption = "Confusion matrix")
+      z$overall <-
+        x$overall %>% as.matrix() %>% my_table(caption = "Precision metrics")
+      z$class <-
+        x$byClass %>% as.matrix() %>% my_table(caption = "Metrics by class")
+      return(z)
+    })
+  for (confusion_result in my_result) {
+    walk(confusion_result, print)
+  }
 }
 
 rmd_plot2 <- function(my_pat) {
@@ -179,9 +210,9 @@ gbm_data_partition <- function(input, sep_col, sep_prop) {
   split_indexes <- # Separate data in two using p
     caret::createDataPartition(y = input[[sep_col]], p = sep_prop, list = FALSE)
   train_data <- # Create a train data set
-    input[split_indexes, ]
+    input[split_indexes,]
   test_data <- # Create a test data set
-    input[-split_indexes, ]
+    input[-split_indexes,]
   return(dplyr::lst(train_data, test_data))
 }
 
@@ -212,7 +243,7 @@ lgb.plot.tree <- function(model = NULL,
     stop("tree: has to be less than the number of trees in the model")
   }
   # filter dt to just the rows for the selected tree
-  dt <- dt[tree_index == tree,]
+  dt <- dt[tree_index == tree, ]
   # change the column names to shorter more diagram friendly versions
   data.table::setnames(
     dt,
@@ -237,7 +268,7 @@ lgb.plot.tree <- function(model = NULL,
   dt[, parent := node_parent][is.na(parent), parent := leaf_parent]
   dt[, c('node_parent', 'leaf_parent', 'split_index') := NULL]
   dt[, Yes := dt$ID[match(dt$Node, dt$parent)]]
-  dt <- dt[nrow(dt):1,]
+  dt <- dt[nrow(dt):1, ]
   dt[, No := dt$ID[match(dt$Node, dt$parent)]]
   # which way do the NA's go (this path will get a thicker arrow)
   # for categorical features, NA gets put into the zero group
@@ -387,7 +418,7 @@ project_import <- function(project_path) {
       )) %>%
       janitor::clean_names()
     data_infos <- subject_informations %>% # Merge informations
-      append(x = ., values = test_informations[1,]) %>%
+      append(x = ., values = test_informations[1, ]) %>%
       data.table::as.data.table()
     files_list <- fs::dir_info(my_study, recurse = TRUE) %>%
       dplyr::filter(type == "file")

@@ -12,6 +12,10 @@ output:
     fig_caption: yes
     keep_md: yes
 params:
+  raw_data_import:
+    label: "Import multiple raw study files?"
+    value: FALSE
+    input: checkbox
   data:
     label: "Input dataset:"
     value: none
@@ -99,6 +103,8 @@ knitr::opts_chunk$set(
   warning = FALSE
 )
 
+set.seed(seed = 123)
+
 # Import libraries
 source("./Scripts/Functions.R")
 library(data.table)
@@ -140,6 +146,13 @@ my_na_strings <- get_knit_param(params$na_strings)
 ```
 
 ```{r Import & scripts, message=FALSE, warning=FALSE, include=FALSE, paged.print=TRUE}
+# Import raw data and transform to summaries if chosen or no data exists
+if (params$raw_data_import |
+    !dir_exists("./Data") |
+    length(list.files(path = "./Data/")) < 1) {
+  import_data()
+}
+
 # Import selected dataset
 if (params$data != "none") {
   imported_data_names <-
@@ -224,6 +237,11 @@ able to classify athletes as EIH or NEIH without using the direct indicator
 for (my_env in my_envs) {
   cat(knitr::knit_child('Result_template.Rmd', envir = my_env, quiet = TRUE))
 }
+```
+
+# Knitting parameters
+```{r Infos}
+params
 ```
 
 # References
