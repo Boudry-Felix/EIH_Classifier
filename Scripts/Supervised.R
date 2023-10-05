@@ -19,10 +19,10 @@ require(fs)
 
 # Analysis ----------------------------------------------------------------
 # source(file = "./Scripts/LGBM_rounds_tune.R") # Compute optimal nrounds
-gbm_data <- analysis_data %>% missRanger()
+gbm_data <- analysis_data
 gbm_data$eih <- as.numeric(gbm_data$eih %>% as.factor()) - 1
 gbm_data <- gbm_data %>%
-  select(.data = ., -any_of(c("sujet", "subject", "sex", "eih_severity"))) %>%
+  select(.data = ., -any_of(c("subject", "sex", "eih_severity", "V1"))) %>%
   gbm_data_partition(sep_col = "eih",
                      sep_prop = params$lgbm_split)
 
@@ -95,7 +95,7 @@ lgbm_confusion <-
 
 ### Plotting --------------------------------------------------------------
 ### Feature importance
-lgbm_importance = lgb.importance(lgbm_model, percentage = TRUE)
+lgbm_importance <- lgb.importance(lgbm_model, percentage = TRUE)
 lgbm_importance_plot <-
   lgb.plot.importance(lgbm_importance, measure = "Gain", top_n = 10)
 lgbm_importance_plot_multi <-

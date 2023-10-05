@@ -23,10 +23,9 @@ cluster_data <- # Clean and select usable data
   select_if(is.numeric) %>%
   select(.data = ., -any_of(discriminating_variables)) %>%
   select(where(~ !all(is.na(.x)))) %>%
-  missRanger() %>%
   {
     if (params$scale_data)
-      scale(x = .) %>% as.data.frame()
+      scale(x = .) %>% as.data.frame() %>% select_if(~ !any(is.na(.)))
     else
       .
   }

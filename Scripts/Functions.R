@@ -370,9 +370,13 @@ lgbm_plots <- function(lgbm_model, lgbm_test_data_pred) {
   shap_data <-
     shapviz::shapviz(object = lgbm_model, X_pred = lgbm_test_data_pred)
 
-  WF <- shapviz::sv_waterfall(shap_data, row_id = 1)
-  SF <- shapviz::sv_force(shap_data)
-  SI <- shapviz::sv_importance(shap_data, kind = "beeswarm")
+  WF <-
+    shapviz::sv_waterfall(shap_data, row_id = 1) +
+    ggtitle("Waterfall plot of used features")
+  SF <- shapviz::sv_force(shap_data) +
+    ggtitle("Force plot of used features")
+  SI <- shapviz::sv_importance(shap_data, kind = "beeswarm") +
+    ggtitle("Beeswarm plot of used features")
   # SD <- sv_dependence(shap_data, v = "eig5", "auto")
 
   TR <- lgb.plot.tree(lgbm_model, tree = 0)
@@ -477,8 +481,10 @@ import_data <- function(tSNE_dims = 2) {
 
   my_colnames <- colnames(my_data[[1]])
 
-  summary_simple <- my_summary(my_data, my_data)
-  summary_relative <- compute_relative(summary_simple)
+  summary_simple <-
+    my_summary(my_data, my_data) %>% missRanger::missRanger()
+  summary_relative <-
+    compute_relative(summary_simple) %>% missRanger::missRanger()
 
   keeped_rows <- summary_simple %>%
     as.data.frame() %>%
