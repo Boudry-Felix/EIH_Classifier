@@ -33,7 +33,11 @@ params:
     value: c("", " ", "na", "NA")
     input: text
   new_LGBM_params:
-    label: "Tune hyperparameters?"
+    label: "Tune hyperparameters? (optuna)"
+    value: FALSE
+    input: checkbox
+  FLAML_params:
+    label: "Tune hyperparameters? (FLAML)"
     value: TRUE
     input: checkbox
   scale_data:

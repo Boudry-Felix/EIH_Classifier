@@ -536,10 +536,6 @@ import_data <- function(tSNE_dims = 2) {
 result_save <- function() {
   dir_copy(path = "./EIH_Modeling_Classification_files/figure-html/",
            new_path = paste0("Output/", analysis_date))
-  file_copy(path = "./EIH_Modeling_Classification.html",
-            new_path = paste0("Output/", analysis_date))
-  file_copy(path = "./EIH_Modeling_Classification.md",
-            new_path = paste0("Output/", analysis_date))
   save.image(file = paste0("./Output/", analysis_date, "/global.RData"))
 }
 
