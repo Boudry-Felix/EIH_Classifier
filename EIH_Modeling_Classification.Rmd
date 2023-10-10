@@ -42,7 +42,7 @@ params:
     input: checkbox
   combine_plots:
     label: "Combine plots by condition?"
-    value: TRUE
+    value: FALSE
     input: checkbox
   cluster_number:
     label: "Numbers of clusters to compute:"
@@ -74,19 +74,23 @@ params:
     input: numeric
   lgbm_rounds:
     label: "Number of rounds for LGBM training:"
-    value: 500
+    value: 5000
     input: numeric
   lgbm_split:
     label: "Percentage of data used to train LGBM:"
-    value: 0.65
+    value: 0.75
+    input: numeric
+  classification_threshold:
+    label: "Threshold for binary classification:"
+    value: 0.5
     input: numeric
   optuna_rounds:
     label: "Number of rounds for LGBM training (Optuna tunning):"
-    value: 200
+    value: 150
     input: numeric
   optuna_trials:
     label: "Number of trials for hyperparameters tunning (Optuna):"
-    value: 200
+    value: 2000
     input: numeric
   discriminating_variables:
     label: "Variables to predict and/or to exclude from clustering and training:"
@@ -128,7 +132,7 @@ library(fossil)
 library(tools)
 
 # Create a folder to save results
-analysis_date <- format(Sys.time(), "%Y-%m-%d_%H.%M")
+analysis_date <- format(Sys.time(), "%Y-%m-%d_%H.%M.%S")
 dir_create(path = paste0("Output/", analysis_date))
 
 # Parameters for the analysis

@@ -9,8 +9,10 @@ import lightgbm as lgb
 def objective(trial):
     train_x = pd.DataFrame(r.lgbm_train_data["values"])
     train_y = np.array(r.lgbm_train_data["label"])
+    train_y = train_y.ravel()
     test_x = pd.DataFrame(r.lgbm_test_data["values"])
     test_y = np.array(r.lgbm_test_data["label"])
+    test_y = test_y.ravel()
     dtrain = lgb.Dataset(train_x, label=train_y)
  
     param = {
@@ -35,7 +37,8 @@ def objective(trial):
     return accuracy
  
 study = optuna.create_study(direction='maximize')
-study.optimize(objective, n_trials=int(r.optuna_trials))
+optuna.logging.set_verbosity(optuna.logging.CRITICAL)
+study.optimize(objective, n_trials=int(r.optuna_trials), show_progress_bar=True)
  
 print('Number of finished trials:', len(study.trials))
 print('Best trial:', study.best_trial.params)

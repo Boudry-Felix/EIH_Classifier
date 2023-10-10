@@ -56,7 +56,7 @@ if (params$new_LGBM_params) {
            pattern = ",",
            replacement = ".")
 } else {
-  my_config <- paste0("params/Best_params", ".rds")
+  my_config <- paste0("params/LightGBM_model", ".rds")
   my_params <- readRDS(file = my_config)
 }
 
@@ -83,7 +83,7 @@ lgbm_model <- lgb.train(
 lgbm_test_data_pred <- as.matrix(x = lgbm_test_data$values)
 lgbm_pred <-
   predict(object = lgbm_model, lgbm_test_data_pred, reshape = TRUE)
-lgbm_pred_y = ifelse(lgbm_pred > median(lgbm_pred), 1, 0) %>%
+lgbm_pred_y = ifelse(lgbm_pred > params$classification_threshold, 1, 0) %>%
   factor(levels = as.factor(analysis_data$eih) %>%
            as.numeric() %>%
            unique() - 1)
