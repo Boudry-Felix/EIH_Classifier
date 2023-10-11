@@ -19,10 +19,13 @@ require(fs)
 
 # Analysis ----------------------------------------------------------------
 # source(file = "./Scripts/LGBM_rounds_tune.R") # Compute optimal nrounds
-gbm_data <- analysis_data
-gbm_data$eih <- as.numeric(gbm_data$eih %>% as.factor()) - 1
+gbm_data <-
+  analysis_data %>%
+  select(.data = ., -any_of(c("subject", "sex", "eih_severity", "V1")))
+gbm_data$eih <-
+  factor(gbm_data$eih, labels = c("EIH" = 0, "NEIH" = 1)) %>%
+  as.numeric() - 1
 gbm_data <- gbm_data %>%
-  select(.data = ., -any_of(c("subject", "sex", "eih_severity", "V1"))) %>%
   gbm_data_partition(sep_col = "eih",
                      sep_prop = params$lgbm_split)
 
@@ -71,27 +74,36 @@ lgbm_valids <-
   list(test = lgbm_dtest) # Create a valid (reference) data set
 
 ### Train model -----------------------------------------------------------
-lgbm_model <- lgb.train(
-  # Train model
-  params = lgbm_params,
-  data = lgbm_dtrain,
-  nrounds = params$lgbm_rounds,
-  valids = lgbm_valids
-)
+# lgbm_model <- lgb.train(
+#   # Train model
+#   params = lgbm_params,
+#   data = lgbm_dtrain,
+#   nrounds = params$lgbm_rounds,
+#   valids = lgbm_valids
+# )
+
+lgbm_model <- lgb.load("my_model.txt")
 
 ### Test model ------------------------------------------------------------
 lgbm_test_data_pred <- as.matrix(x = lgbm_test_data$values)
 lgbm_pred <-
-  predict(object = lgbm_model, lgbm_test_data_pred, reshape = TRUE)
-lgbm_pred_y = ifelse(lgbm_pred > params$classification_threshold, 1, 0) %>%
-  factor(levels = as.factor(analysis_data$eih) %>%
-           as.numeric() %>%
-           unique() - 1)
+  predict(object = lgbm_model, lgbm_test_data_pred, predleaf = T)
 
-lgbm_confusion <-
-  confusionMatrix(as.factor(x = lgbm_test_data$label[["eih"]]),
-                  as.factor(x = lgbm_pred_y),
-                  mode = "everything")
+
+lgbm_pred_y = ifelse(lgbm_pred > params$classification_threshold, 1, 0)
+  # factor(levels = as.factor(analysis_data$eih) %>%
+  #          as.numeric() %>%
+  #          unique() - 1)
+
+# lgbm_confusion <-
+#   confusionMatrix(
+#     factor(lgbm_test_data$label[["eih"]], labels = c("EIH" = 0, "NEIH" = 1)),
+#     factor(lgbm_pred_y, labels = c("EIH" = 1, "NEIH" = 0)),
+#     mode = "everything")
+lgbm_pred_y <- predictions
+
+lgbm_confusion <- conf_matrix
+
 
 ### Plotting --------------------------------------------------------------
 ### Feature importance
@@ -115,7 +127,7 @@ lgbm_model_results <-
 # Data structure ----------------------------------------------------------
 dir_create(path = paste0("Output/", analysis_date, "/params/"))
 lgbm_export(#study = study,
-            lgbm_model_results = lgbm_model_results)
+  lgbm_model_results = lgbm_model_results)
 
 # Export data -------------------------------------------------------------
 # Save environment to avoid recomputing
