@@ -44,4 +44,4 @@ Data_raw
 figure
 EIH_Modeling_Classification_files
 EIH_Modeling_Classification.md
-my_model.txt
+lgbm_model.txt

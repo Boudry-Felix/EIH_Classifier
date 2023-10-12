@@ -17,6 +17,8 @@ require(DiagrammeR)
 require(missRanger)
 require(fs)
 
+lgbm_rounds <<- params$lgbm_rounds
+
 # Analysis ----------------------------------------------------------------
 # source(file = "./Scripts/LGBM_rounds_tune.R") # Compute optimal nrounds
 gbm_data <-
@@ -49,7 +51,6 @@ lgbm_dtest <- lgb.Dataset.create.valid(
 )
 
 ### Configure -------------------------------------------------------------
-
 lgbm_train_data <<- compute_env$lgbm_train_data
 lgbm_test_data <<- compute_env$lgbm_test_data
 if (params$new_LGBM_params) {
@@ -74,36 +75,12 @@ lgbm_valids <-
   list(test = lgbm_dtest) # Create a valid (reference) data set
 
 ### Train model -----------------------------------------------------------
-# lgbm_model <- lgb.train(
-#   # Train model
-#   params = lgbm_params,
-#   data = lgbm_dtrain,
-#   nrounds = params$lgbm_rounds,
-#   valids = lgbm_valids
-# )
-
-lgbm_model <- lgb.load("my_model.txt")
+lgbm_model <- lgb.load("lgbm_model.txt")
 
 ### Test model ------------------------------------------------------------
 lgbm_test_data_pred <- as.matrix(x = lgbm_test_data$values)
-lgbm_pred <-
-  predict(object = lgbm_model, lgbm_test_data_pred, predleaf = T)
-
-
-lgbm_pred_y = ifelse(lgbm_pred > params$classification_threshold, 1, 0)
-  # factor(levels = as.factor(analysis_data$eih) %>%
-  #          as.numeric() %>%
-  #          unique() - 1)
-
-# lgbm_confusion <-
-#   confusionMatrix(
-#     factor(lgbm_test_data$label[["eih"]], labels = c("EIH" = 0, "NEIH" = 1)),
-#     factor(lgbm_pred_y, labels = c("EIH" = 1, "NEIH" = 0)),
-#     mode = "everything")
 lgbm_pred_y <- predictions
-
 lgbm_confusion <- conf_matrix
-
 
 ### Plotting --------------------------------------------------------------
 ### Feature importance

@@ -81,6 +81,9 @@ rmd_plot2("^optics")
 #### LightGBM
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE, results='asis'}
+accuracy
+best_accuracy
+best_params
 confusion_export("^lgbm")
 t(as.data.frame(lgbm_model$params[c(
   "boosting",
