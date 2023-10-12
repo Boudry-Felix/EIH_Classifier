@@ -21,7 +21,8 @@ describe(x = analysis_data[c("age",
                              "height",
                              "weight",
                              "train_years",
-                             "train_volume")] , na.rm = T) %>%
+                             "train_volume",
+                             "vo2_maximum")] , na.rm = T) %>%
   round() %>%
   select(c("mean", "sd", "median", "min", "max")) %>%
   my_table(
@@ -84,7 +85,7 @@ rmd_plot2("^optics")
 accuracy
 best_accuracy
 best_params
-confusion_export("^lgbm")
+conf_matrix
 t(as.data.frame(lgbm_model$params[c(
   "boosting",
   "lambda_l1",

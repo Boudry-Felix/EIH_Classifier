@@ -10,6 +10,8 @@ from flaml import AutoML
 import matplotlib.pyplot as plt
 import shap
 
+sampler = optuna.samplers.TPESampler(seed=10)
+
 choice = r.params
 
 train_x = pd.DataFrame(r.lgbm_train_data["values"])
