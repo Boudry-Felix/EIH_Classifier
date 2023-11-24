@@ -22,24 +22,24 @@ get_knit_param <- function(input) {
   return(output)
 }
 
-rmd_plot <- function(my_pat) {
-  ls(pattern = paste0(my_pat, "_graph"), envir = my_env) %>%
-    lapply(get, envir = my_env) %>%
-    {
-      if (params$combine_plots) {
-        lapply(
-          X = .,
-          FUN = marrangeGrob,
-          nrow = 1,
-          ncol = 2,
-          top = NULL
-        )
-      } else {
-        .
-      }
-    } %>%
-    purrr::walk(print)
-}
+# rmd_plot <- function(my_pat) {
+#   ls(pattern = paste0(my_pat, "_graph"), envir = my_env) %>%
+#     lapply(get, envir = my_env) %>%
+#     {
+#       if (params$combine_plots) {
+#         lapply(
+#           X = .,
+#           FUN = marrangeGrob,
+#           nrow = 1,
+#           ncol = 2,
+#           top = NULL
+#         )
+#       } else {
+#         .
+#       }
+#     } %>%
+#     purrr::walk(print)
+# }
 
 confusion_export <- function(my_pat) {
   my_result <-
@@ -379,8 +379,24 @@ lgbm_plots <- function(lgbm_model, lgbm_test_data_pred) {
     ggtitle("Beeswarm plot of used features")
   # SD <- sv_dependence(shap_data, v = "eig5", "auto")
 
-  TR <- lgb.plot.tree(lgbm_model, tree = 0)
-  return(dplyr::lst(WF, SF, SI, TR))
+  # TR <- lgb.plot.tree(lgbm_model, tree = 0)
+  return(dplyr::lst(WF, SF, SI))
+}
+
+lgbm_plots2 <- function(lgbm_model, lgbm_test_data_pred) {
+  shap_data <-
+    shapviz::shapviz(object = lgbm_model, X_pred = lgbm_test_data_pred)
+
+  WF <-
+    shapviz::sv_waterfall(shap_data, row_id = 1) +
+    ggtitle("Waterfall plot of used features")
+  SF <- shapviz::sv_force(shap_data) +
+    ggtitle("Force plot of used features")
+  SI <- shapviz::sv_importance(shap_data, kind = "beeswarm") +
+    ggtitle("Beeswarm plot of used features")
+  # SD <- sv_dependence(shap_data, v = "eig5", "auto")
+
+  return(dplyr::lst(WF, SF, SI))
 }
 
 # File management ---------------------------------------------------------
@@ -478,6 +494,11 @@ import_data <- function(tSNE_dims = 2) {
   infos <<- imported_data$infos
   my_data <- imported_data$data %>%
     common_col()
+
+  # Compute ratios
+  my_data <- lapply(my_data, \(x){
+    x$`ve/vo2` <- x$ve / x$vo2
+  } )
 
   my_colnames <- colnames(my_data[[1]])
 

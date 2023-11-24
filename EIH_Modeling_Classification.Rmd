@@ -12,10 +12,6 @@ output:
     fig_caption: yes
     keep_md: yes
 params:
-  raw_data_import:
-    label: "Import multiple raw study files?"
-    value: FALSE
-    input: checkbox
   data:
     label: "Input dataset:"
     value: none
@@ -28,53 +24,25 @@ params:
     label: "Path to multiple data sets folder:"
     value: "./Data"
     input: text
-  na_strings:
-    label: "Strings to consider as \"NA\""
-    value: c("", " ", "na", "NA")
-    input: text
   new_LGBM_params:
     label: "Tune hyperparameters? (optuna)"
-    value: FALSE
+    value: TRUE
     input: checkbox
+  optuna_rounds:
+    label: "Number of rounds for LGBM training (Optuna tunning):"
+    value: 150
+    input: numeric
+  optuna_trials:
+    label: "Number of trials for hyperparameters tunning (Optuna):"
+    value: 2000
+    input: numeric
   FLAML_params:
     label: "Tune hyperparameters? (FLAML)"
     value: TRUE
     input: checkbox
-  scale_data:
-    label: "Scale data?"
-    value: TRUE
-    input: checkbox
-  combine_plots:
-    label: "Combine plots by condition?"
-    value: FALSE
-    input: checkbox
-  cluster_number:
-    label: "Numbers of clusters to compute:"
-    value: c(2, 4)
-    input: text
-  cluste_number_names:
-    label: "Names of the clusters:"
-    value: c("two", "four")
-    input: text
-  dbscan_eps:
-    label: "eps for DBSCAN clustering:"
-    value: 10
-    input: numeric
-  dbscan_minPts:
-    label: "Minimum number of points to create a cluster (DBSCAN):"
-    value: 3
-    input: numeric
-  optics_eps:
-    label: "eps for OPTICS clustering:"
-    value: 250
-    input: numeric
-  optics_minPts:
-    label: "Minimum number of points to create a cluster (OPTICS):"
-    value: 5
-    input: numeric
-  optics_xi:
-    label: "xi to compute clusters (OPTICS):"
-    value: 0.1
+  FLAML_time_budget:
+    label: "Time budget for FLAML."
+    value: 3600
     input: numeric
   lgbm_rounds:
     label: "Number of rounds for LGBM training:"
@@ -83,18 +51,6 @@ params:
   lgbm_split:
     label: "Percentage of data used to train LGBM:"
     value: 0.75
-    input: numeric
-  classification_threshold:
-    label: "Threshold for binary classification:"
-    value: 0.5
-    input: numeric
-  optuna_rounds:
-    label: "Number of rounds for LGBM training (Optuna tunning):"
-    value: 150
-    input: numeric
-  optuna_trials:
-    label: "Number of trials for hyperparameters tunning (Optuna):"
-    value: 2000
     input: numeric
   discriminating_variables:
     label: "Variables to predict and/or to exclude from clustering and training:"
@@ -144,23 +100,14 @@ dir_create(path = paste0("Output/", analysis_date))
 optuna_rounds <- params$optuna_rounds
 optuna_trials <- params$optuna_trials
 ## Parsing and evaluating strings used as parameters to be used as code
-cluster_number <-
-  get_knit_param(params$cluster_number)
-cluster_number_names <-
-  get_knit_param(params$cluste_number_names)
 discriminating_variables <-
   get_knit_param(params$discriminating_variables)
-my_na_strings <- get_knit_param(params$na_strings)
+## Manual parameters for the analysis
+cluster_number <- c(2, 4)
+cluster_number_names <- c("two", "four")
 ```
 
 ```{r Import & scripts, message=FALSE, warning=FALSE, include=FALSE, paged.print=TRUE}
-# Import raw data and transform to summaries if chosen or no data exists
-if (params$raw_data_import |
-    !dir_exists("./Data") |
-    length(list.files(path = "./Data/")) < 1) {
-  import_data()
-}
-
 # Import selected dataset
 if (params$data != "none") {
   imported_data_names <-
@@ -168,7 +115,7 @@ if (params$data != "none") {
     file_path_sans_ext()
   imported_data <-
     params$data %>%
-    fread(na.strings = my_na_strings) %>%
+    fread(na.strings = c("NA", "na", "")) %>%
     lst() %>%
     `names<-`(value = imported_data_names)
 } else if (params$data_list != "none") {
@@ -182,7 +129,7 @@ if (params$data != "none") {
       X = params$data_list %>%
         get_knit_param(),
       FUN = fread,
-      na.strings = my_na_strings
+      na.strings = c("NA", "na", "")
     ) %>%
     `names<-`(value = imported_data_names)
 } else {
@@ -193,7 +140,7 @@ if (params$data != "none") {
   imported_data <-
     list.files(path = params$data_folder,
                full.names = TRUE) %>%
-    lapply(fread, na.strings = my_na_strings) %>%
+    lapply(fread, na.strings = c("NA", "na", "")) %>%
     `names<-`(value = imported_data_names)
 }
 

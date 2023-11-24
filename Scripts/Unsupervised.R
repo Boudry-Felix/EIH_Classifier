@@ -23,12 +23,9 @@ cluster_data <- # Clean and select usable data
   select_if(is.numeric) %>%
   select(.data = ., -any_of(discriminating_variables)) %>%
   select(where(~ !all(is.na(.x)))) %>%
-  {
-    if (params$scale_data)
-      scale(x = .) %>% as.data.frame() %>% select_if(~ !any(is.na(.)))
-    else
-      .
-  }
+  scale(x = .) %>%
+  as.data.frame() %>%
+  select_if(~ !any(is.na(.)))
 
 ## Cluster computation ----------------------------------------------------
 ## Compute clusters with different methods
@@ -68,19 +65,19 @@ hclust_td_data <-
     )
   ) %>%
   `names<-`(value = cluster_number_names)
-dbscan_data <-
-  dbscan(
-    x = cluster_data,
-    eps = params$dbscan_eps,
-    minPts = params$dbscan_minPts
-  )
-optics_data <-
-  optics(
-    x = cluster_data,
-    eps = params$optics_eps,
-    minPts = params$optics_minPts
-  ) %>%
-  extractXi(xi = params$optics_xi)
+# dbscan_data <-
+#   dbscan(
+#     x = cluster_data,
+#     eps = params$dbscan_eps,
+#     minPts = params$dbscan_minPts
+#   )
+# optics_data <-
+#   optics(
+#     x = cluster_data,
+#     eps = params$optics_eps,
+#     minPts = params$optics_minPts
+#   ) %>%
+#   extractXi(xi = params$optics_xi)
 
 ## Result metrics ---------------------------------------------------------
 ## Compute confusion matrix to assert accuracy
@@ -129,16 +126,16 @@ hclust_td_confusion <-
       analysis_data$eih_severity %>% as.data.frame()
     )
   )
-dbscan_rand <-
-  rand.index(
-    analysis_data$eih %>% as.factor() %>% as.numeric() %>% replace(is.na(.), 0),
-    dbscan_data$cluster %>% as.numeric()
-  )
-optics_rand <-
-  rand.index(
-    analysis_data$eih %>% as.factor() %>% as.numeric() %>% replace(is.na(.), 0),
-    optics_data$cluster %>% as.numeric()
-  )
+# dbscan_rand <-
+#   rand.index(
+#     analysis_data$eih %>% as.factor() %>% as.numeric() %>% replace(is.na(.), 0),
+#     dbscan_data$cluster %>% as.numeric()
+#   )
+# optics_rand <-
+#   rand.index(
+#     analysis_data$eih %>% as.factor() %>% as.numeric() %>% replace(is.na(.), 0),
+#     optics_data$cluster %>% as.numeric()
+#   )
 
 ## Plotting ---------------------------------------------------------------
 
@@ -254,13 +251,13 @@ hclust_td_graph <- lapply(X = hclust_td_data,
                               }
                           }) %>%
   `names<-`(value = cluster_number_names)
-dbscan_graph <- fviz_cluster(dbscan_data,
-                             cluster_data,
-                             geom = "point",
-                             show.clust.cent = FALSE) +
-  guides(shape = FALSE)
-optics_graph <- plot(optics_data)
-optics_graph <- recordPlot()
+# dbscan_graph <- fviz_cluster(dbscan_data,
+#                              cluster_data,
+#                              geom = "point",
+#                              show.clust.cent = FALSE) +
+#   guides(shape = FALSE)
+# optics_graph <- plot(optics_data)
+# optics_graph <- recordPlot()
 
 ### Boxplots --------------------------------------------------------------
 ### Boxplots of analyzed data by cluster
