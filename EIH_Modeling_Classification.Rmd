@@ -28,30 +28,10 @@ params:
     label: "Tune hyperparameters? (optuna)"
     value: TRUE
     input: checkbox
-  optuna_rounds:
-    label: "Number of rounds for LGBM training (Optuna tunning):"
-    value: 150
-    input: numeric
-  optuna_trials:
-    label: "Number of trials for hyperparameters tunning (Optuna):"
-    value: 2000
-    input: numeric
   FLAML_params:
     label: "Tune hyperparameters? (FLAML)"
     value: TRUE
     input: checkbox
-  FLAML_time_budget:
-    label: "Time budget for FLAML."
-    value: 3600
-    input: numeric
-  lgbm_rounds:
-    label: "Number of rounds for LGBM training:"
-    value: 5000
-    input: numeric
-  lgbm_split:
-    label: "Percentage of data used to train LGBM:"
-    value: 0.75
-    input: numeric
   discriminating_variables:
     label: "Variables to predict and/or to exclude from clustering and training:"
     value: c("saturation_rest", "saturation_end", "saturation_delta")
@@ -67,7 +47,7 @@ knitr::opts_chunk$set(
   warning = FALSE
 )
 
-set.seed(seed = 123)
+set.seed(seed = 123456)
 
 # Import libraries
 source("./Scripts/Functions.R")
@@ -101,48 +81,15 @@ optuna_rounds <- params$optuna_rounds
 optuna_trials <- params$optuna_trials
 ## Parsing and evaluating strings used as parameters to be used as code
 discriminating_variables <-
-  get_knit_param(params$discriminating_variables)
+  eval_knit_param(params$discriminating_variables)
 ## Manual parameters for the analysis
-cluster_number <- c(2, 4)
-cluster_number_names <- c("two", "four")
+cluster_number <- c(2)
+cluster_number_names <- c("two")
 ```
 
 ```{r Import & scripts, message=FALSE, warning=FALSE, include=FALSE, paged.print=TRUE}
 # Import selected dataset
-if (params$data != "none") {
-  imported_data_names <-
-    basename(params$data) %>%
-    file_path_sans_ext()
-  imported_data <-
-    params$data %>%
-    fread(na.strings = c("NA", "na", "")) %>%
-    lst() %>%
-    `names<-`(value = imported_data_names)
-} else if (params$data_list != "none") {
-  imported_data_names <-
-    params$data_list %>%
-    get_knit_param() %>% 
-    basename() %>%
-    file_path_sans_ext()
-  imported_data <-
-    lapply(
-      X = params$data_list %>%
-        get_knit_param(),
-      FUN = fread,
-      na.strings = c("NA", "na", "")
-    ) %>%
-    `names<-`(value = imported_data_names)
-} else {
-  imported_data_names <-
-    params$data_folder %>%
-    list.files() %>%
-    file_path_sans_ext()
-  imported_data <-
-    list.files(path = params$data_folder,
-               full.names = TRUE) %>%
-    lapply(fread, na.strings = c("NA", "na", "")) %>%
-    `names<-`(value = imported_data_names)
-}
+data_read()
 
 # Create environments (one per dataset, used for results storage)
 my_envs <- lapply(X = imported_data_names, FUN = \(df_name) {

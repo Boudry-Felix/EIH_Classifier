@@ -67,17 +67,6 @@ hclust_td_graph %>% walk(print)
 confusion_list_export("^hclust_td")
 ```
 
-<!-- #### DBSCAN clustering -->
-
-<!-- ```{r echo=FALSE, message=FALSE, warning=FALSE, results='asis'} -->
-<!-- # rmd_plot2("^dbscan") -->
-<!-- ``` -->
-
-<!-- #### OPTICS clustering -->
-<!-- ```{r echo=FALSE, message=FALSE, warning=FALSE, results='asis'} -->
-<!-- # rmd_plot2("^optics") -->
-<!-- ``` -->
-
 ### Supervised learning
 
 #### LightGBM

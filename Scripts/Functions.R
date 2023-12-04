@@ -8,40 +8,297 @@
 # Libraries ---------------------------------------------------------------
 require(magrittr)
 
+# Import and transform ----------------------------------------------------
+summary_gen <- function() {
+  imported_data <-
+    project_import(project_path = easycsv::choose_dir())
+
+  infos <- imported_data$infos
+  my_data <- imported_data$data %>%
+    common_col()
+
+  # Compute ratios
+  my_data <- lapply(my_data, \(x) {
+    x <- cbind(x, `ve/vo2` = x$ve / x$vo2) %>%
+      cbind(`ve/vco2` = x$ve / x$vco2) %>%
+      cbind(`vco2/vo2` = x$vco2 / x$vo2) %>%
+      cbind(`vo2/fc` = x$vo2 / x$fc)
+    return(x)
+  })
+
+  my_colnames <- colnames(my_data[[1]])
+
+  summary_simple <-
+    my_summary(my_data, my_data) %>% missRanger::missRanger()
+  summary_relative <-
+    compute_relative(summary_simple, cols = c("vo2")) %>%
+    missRanger::missRanger()
+
+  colnames(summary_relative) <-
+    paste0(colnames(summary_relative), "_rel")
+
+  summary_full <-
+    merge(
+      summary_simple,
+      summary_relative,
+      by.x = "subject",
+      by.y = "subject_rel",
+      all.x = TRUE
+    )
+
+  keeped_rows <- summary_full %>%
+    as.data.frame() %>%
+    dplyr::select_if(is.numeric) %>%
+    na.omit() %>%
+    rownames()
+
+  my_summaries <-
+    dplyr::lst(summary_simple, summary_relative, summary_full) %>%
+    `names<-`(value = c("absolute", "relative", "full"))
+
+  # Labeling
+  encoded_summaries <- lapply(X = my_summaries, FUN = df_encode)
+
+  dir.create(path = "Data")
+  rio::export_list(x = my_summaries, file = "Data/summary_%s.csv")
+}
+
+project_import <- function(project_path) {
+  imported_data <- dplyr::lst() # Create a list for data
+  imported_data_infos <-
+    data.table::data.table() # Create a table for informations about samples
+  studies_list <-
+    fs::dir_info(path = paste(project_path), recurse = FALSE) %>%
+    dplyr::filter(type == "directory") %$%
+    path
+
+  for (my_study in studies_list) {
+    information_files_list <-
+      fs::dir_info(path = my_study, recurse = TRUE) %>%
+      dplyr::filter(type == "file") %$%
+      path %>%
+      grep(pattern = "Informations",
+           x = .,
+           value = TRUE)
+
+    subject_informations <-
+      # Import subjects informations and clean column names
+      data.table::fread(
+        file = grep(
+          pattern = "Informations_subjects.*",
+          x = information_files_list,
+          value = TRUE
+        )
+      ) %>%
+      janitor::clean_names()
+    test_informations <-
+      # Import test informations and clean column names
+      data.table::fread(file = grep(
+        pattern = "Informations_tests.*",
+        x = information_files_list,
+        value = TRUE
+      )) %>%
+      janitor::clean_names()
+    data_infos <- subject_informations %>% # Merge informations
+      append(x = ., values = test_informations[1, ]) %>%
+      data.table::as.data.table()
+    files_list <- fs::dir_info(my_study, recurse = TRUE) %>%
+      dplyr::filter(type == "file")
+    files_list <- files_list$path
+    files_list <-
+      grep(pattern = ".xlsx",
+           x = files_list,
+           value = TRUE)
+    # Importing data
+    my_study <-
+      gsub(pattern = project_path,
+           replacement = "",
+           x = my_study)
+    my_list <-
+      sapply(
+        files_list,
+        readxl::read_excel,
+        .name_repair = "minimal",
+        na = c("", " ", "NA"),
+        col_type = "numeric",
+        simplify = FALSE,
+        USE.NAMES = TRUE
+      ) %>%
+      lapply(janitor::clean_names, sep_out = "")
+    imported_data <- append(x = imported_data, values = my_list)
+    imported_data_infos <-
+      rbind(x = imported_data_infos, values = data_infos)
+  }
+  names(imported_data) <-
+    gsub(
+      pattern = paste0(project_path, ".*/.*/"),
+      replacement = "",
+      x = names(imported_data)
+    ) %>%
+    gsub(pattern = ".xlsx",
+         replacement = "")
+  remove_names <-
+    setdiff(names(imported_data), imported_data_infos$subject) %>%
+    append(setdiff(imported_data_infos$subject, names(imported_data)))
+  imported_data <-
+    imported_data[names(imported_data) %in% remove_names == FALSE]
+  imported_data_infos <-
+    imported_data_infos[imported_data_infos$subject %in% remove_names == FALSE]
+  return(dplyr::lst("data" = imported_data, "infos" = imported_data_infos))
+}
+
+common_col <- function(df_list) {
+  cleaned_df <- lapply(X = df_list, FUN = colnames) %>%
+    Reduce(f = intersect) %>%
+    lapply(X = df_list, FUN = "[", .)
+  return(cleaned_df)
+}
+
+my_summary <- function(df_list, df_names) {
+  mapply(
+    FUN = function(df_input, name_input)
+      dplyr::summarise(
+        df_input,
+        dplyr::across(
+          # Compute.fns for each column
+          .cols = everything(),
+          # Columns to compute
+          .fns = list(
+            # Functions to apply on columns
+            mean = \(x) base::mean(x = x, na.rm = TRUE),
+            max = \(x) base::max(x = x, na.rm = TRUE),
+            min = \(x) base::min(x = x, na.rm = TRUE),
+            median = \(x) stats::median(x = x, na.rm = TRUE),
+            sd = \(x) stats::sd(x = x, na.rm = TRUE)
+          ),
+          .names = "{.col}_{.fn}"
+        )
+      ) %>%
+      cbind("subject" = name_input),
+    df_input = df_list,
+    name_input = names(df_names)
+  ) %>%
+    t() %>%
+    as.data.frame() %>%
+    tidyr::unnest(cols = colnames(x = .)) %>%
+    merge(y = infos, by = "subject", all = TRUE) %>%
+    dplyr::select(-any_of(
+      c(
+        "train_years",
+        "data_type",
+        "type",
+        "environment",
+        "intensity"
+      )
+    ))
+}
+
+compute_relative <- function(input, cols) {
+  maximum_columns <-
+    grep(pattern = cols, x = colnames(x = input), value = TRUE) %>%
+    grep(pattern = "max", x = ., value = TRUE) # List max columns
+  for (my_column in maximum_columns) {
+    study_rel()
+  }
+  out_col <- grep(pattern = cols, x = colnames(input), value = TRUE)
+  output <- input[, c("subject", out_col)]
+  return(output)
+}
+
+study_rel <- function() {
+  my_variable_name <- colnames(x = input[my_column]) %>%
+    sub(pattern = "_max", replacement = "") # remove "_max" from column name
+  max_colname <- paste0(my_variable_name, "_max")
+  mean_colname <- paste0(my_variable_name, "_mean")
+  median_colname <- paste0(my_variable_name, "_median")
+  min_colname <- paste0(my_variable_name, "_min")
+  sd_colname <- paste0(my_variable_name, "_sd")
+  input[min_colname] <- # Compute minimum values as %
+    100 * input[min_colname] / input[max_colname]
+  input[mean_colname] <- # Compute mean values as %
+    100 * input[mean_colname] / input[max_colname]
+  input[median_colname] <- # Compute median values as %
+    100 * input[median_colname] / input[max_colname]
+  input[sd_colname] <- # Compute sd values as %
+    100 * input[sd_colname] / input[max_colname]
+}
+
+col_encode <- function(my_col) {
+  convert_dic <- dplyr::lst()
+  if (is.numeric(x = my_col)) {
+    my_col
+  } else {
+    label <- CatEncoders::LabelEncoder.fit(y = my_col)
+    convert_dic <<- append(x = convert_dic, values = label)
+    CatEncoders::transform(enc = label, my_col)
+  }
+}
+
+df_encode <- function(input = my_data, list_names) {
+  # Encode (labeling) entire data frames
+  encoded_data <- lapply(X = input,
+                         FUN = col_encode) %>% as.data.frame()
+  output <- dplyr::lst(convert_dic, encoded_data)
+  if (!missing(x = list_names)) {
+    names(output) <- list_names
+  }
+  return(output)
+}
+
+data_read <- function(params = params) {
+  if (params$data != "none") {
+    imported_data_names <-
+      basename(params$data) %>%
+      file_path_sans_ext()
+    imported_data <-
+      params$data %>%
+      fread(na.strings = c("NA", "na", "")) %>%
+      lst() %>%
+      `names<-`(value = imported_data_names)
+  } else if (params$data_list != "none") {
+    imported_data_names <-
+      params$data_list %>%
+      get_knit_param() %>%
+      basename() %>%
+      file_path_sans_ext()
+    imported_data <-
+      lapply(
+        X = params$data_list %>%
+          get_knit_param(),
+        FUN = fread,
+        na.strings = c("NA", "na", "")
+      ) %>%
+      `names<-`(value = imported_data_names)
+  } else {
+    imported_data_names <-
+      params$data_folder %>%
+      list.files() %>%
+      file_path_sans_ext()
+    imported_data <-
+      list.files(path = params$data_folder,
+                 full.names = TRUE) %>%
+      lapply(fread, na.strings = c("NA", "na", "")) %>%
+      `names<-`(value = imported_data_names)
+  }
+}
+
 # Formats -----------------------------------------------------------------
 my_table <- function(input, ...) {
-  # Custom kable table
+  # Custom kable table style
   kableExtra::kable(x = input, ... = ...) %>%
     kableExtra::kable_styling(bootstrap_options = c("striped"),
                               full_width = FALSE)
 }
 
-get_knit_param <- function(input) {
+eval_knit_param <- function(input) {
+  # Parse and evaluate text used as parameter to be executed
   output <- parse(text = input) %>%
     eval()
   return(output)
 }
 
-# rmd_plot <- function(my_pat) {
-#   ls(pattern = paste0(my_pat, "_graph"), envir = my_env) %>%
-#     lapply(get, envir = my_env) %>%
-#     {
-#       if (params$combine_plots) {
-#         lapply(
-#           X = .,
-#           FUN = marrangeGrob,
-#           nrow = 1,
-#           ncol = 2,
-#           top = NULL
-#         )
-#       } else {
-#         .
-#       }
-#     } %>%
-#     purrr::walk(print)
-# }
-
 confusion_export <- function(my_pat) {
+  # Generates a complete confusion matrix with various metrics
   my_result <-
     ls(pattern = paste0(my_pat, "_confusion"), envir = my_env) %>%
     get(envir = my_env)
@@ -82,130 +339,7 @@ rmd_plot2 <- function(my_pat) {
     lapply(get, envir = my_env)
 }
 
-# Computations ------------------------------------------------------------
-compute_relative <- function(input) {
-  maximum_columns <-
-    grep(pattern = "max", x = colnames(x = input)) # List max columns
-  for (my_column in maximum_columns) {
-    my_variable_name <- colnames(x = input[my_column]) %>%
-      sub(pattern = "_max", replacement = "") # remove "_max" from column name
-    max_colname <- paste0(my_variable_name, "_max")
-    mean_colname <- paste0(my_variable_name, "_mean")
-    min_colname <- paste0(my_variable_name, "_min")
-    input[min_colname] <- # Compute minimum values as %
-      100 * input[min_colname] / input[max_colname]
-    input[mean_colname] <- # Compute mean values as %
-      100 * input[mean_colname] / input[max_colname]
-  }
-  return(input)
-}
-
-col_encode <- function(my_col) {
-  convert_dic <- dplyr::lst()
-  if (is.numeric(x = my_col)) {
-    my_col
-  } else {
-    label <- CatEncoders::LabelEncoder.fit(y = my_col)
-    convert_dic <<- append(x = convert_dic, values = label)
-    CatEncoders::transform(enc = label, my_col)
-  }
-}
-
-df_encode <- function(input = my_data, list_names) {
-  # Encode (labeling) entire data frames
-  encoded_data <- lapply(X = input,
-                         FUN = col_encode) %>% as.data.frame()
-  output <- dplyr::lst(convert_dic, encoded_data)
-  if (!missing(x = list_names)) {
-    names(output) <- list_names
-  }
-  return(output)
-}
-
-common_col <- function(df_list) {
-  cleaned_df <- lapply(X = df_list, FUN = colnames) %>%
-    Reduce(f = intersect) %>%
-    lapply(X = df_list, FUN = "[", .)
-  return(cleaned_df)
-}
-
-my_summary <- function(df_list, df_names) {
-  mapply(
-    FUN = function(df_input, name_input)
-      dplyr::summarise(
-        df_input,
-        dplyr::across(
-          # Compute.fns for each column
-          .cols = everything(),
-          # Columns to compute
-          .fns = list(
-            # Functions to apply on columns
-            mean = \(x) base::mean(x = x, na.rm = TRUE),
-            max = \(x) base::max(x = x, na.rm = TRUE),
-            min = \(x) base::min(x = x, na.rm = TRUE),
-            median = \(x) stats::median(x = x, na.rm = TRUE)
-          ),
-          .names = "{.col}_{.fn}"
-        )
-      ) %>%
-      cbind("subject" = name_input),
-    df_input = df_list,
-    name_input = names(df_names)
-  ) %>%
-    t() %>%
-    as.data.frame() %>%
-    tidyr::unnest(cols = colnames(x = .)) %>%
-    merge(y = infos, by = "subject", all = TRUE) %>%
-    dplyr::select(-any_of(
-      c(
-        "train_years",
-        "data_type",
-        "type",
-        "environment",
-        "intensity"
-      )
-    ))
-}
-
-# Clusters ----------------------------------------------------------------
-optimal_clust <- function(input_data, cluster_method) {
-  # Choose number of cluster for analysis
-  elbow_graph <-
-    factoextra::fviz_nbclust(input_data, cluster_method, method = "wss") +
-    ggplot2::labs(subtitle = "Elbow method") +
-    ggplot2::ggtitle(label = "Optimal number of cluster")
-  silhouette_graph <-
-    factoextra::fviz_nbclust(input_data, cluster_method, method = "silhouette") +
-    ggplot2::labs(subtitle = "Silhouette method") +
-    ggplot2::ggtitle(label = "Optimal number of cluster")
-  gap_graph <-
-    factoextra::fviz_nbclust(
-      input_data,
-      cluster_method,
-      nstart = 25,
-      method = "gap_stat",
-      nboot = 50
-    ) +
-    ggplot2::labs(subtitle = "Gap statistic method") +
-    ggplot2::ggtitle(label = "Optimal number of cluster")
-
-  cluster_number_graph <- # Put graphs in list
-    dplyr::lst(elbow_graph, silhouette_graph, gap_graph)
-  names(x = cluster_number_graph) <- c("elbow", "silhouette", "gap")
-  return(cluster_number_graph)
-}
-
-boxplots_by_clust <- function(data_col, cluster_col, used_env) {
-  ggplot2::ggplot(plot_df, aes(x = !!sym(cluster_col), y = !!sym(paste(data_col))), environment = used_env) +
-    ggplot2::geom_boxplot(aes(
-      group = !!sym(cluster_col),
-      fill = as.factor(!!sym(cluster_col))
-    )) +
-    ggplot2::ggtitle(label = paste(data_col, "by cluster")) +
-    ggplot2::labs(fill = cluster_col)
-}
-
-# GBM ---------------------------------------------------------------------
+# Compute -----------------------------------------------------------------
 gbm_data_partition <- function(input, sep_col, sep_prop) {
   split_indexes <- # Separate data in two using p
     caret::createDataPartition(y = input[[sep_col]], p = sep_prop, list = FALSE)
@@ -216,6 +350,19 @@ gbm_data_partition <- function(input, sep_col, sep_prop) {
   return(dplyr::lst(train_data, test_data))
 }
 
+# Plots -------------------------------------------------------------------
+## Clusters ---------------------------------------------------------------
+boxplots_by_clust <- function(data_col, cluster_col, used_env) {
+  ggplot2::ggplot(plot_df, aes(x = !!sym(cluster_col), y = !!sym(paste(data_col))), environment = used_env) +
+    ggplot2::geom_boxplot(aes(
+      group = !!sym(cluster_col),
+      fill = as.factor(!!sym(cluster_col))
+    )) +
+    ggplot2::ggtitle(label = paste(data_col, "by cluster")) +
+    ggplot2::labs(fill = cluster_col)
+}
+
+## GBM --------------------------------------------------------------------
 lgb.plot.tree <- function(model = NULL,
                           tree = NULL,
                           rules = NULL) {
@@ -383,185 +530,14 @@ lgbm_plots <- function(lgbm_model, lgbm_test_data_pred) {
   return(dplyr::lst(WF, SF, SI))
 }
 
-lgbm_plots2 <- function(lgbm_model, lgbm_test_data_pred) {
-  shap_data <-
-    shapviz::shapviz(object = lgbm_model, X_pred = lgbm_test_data_pred)
-
-  WF <-
-    shapviz::sv_waterfall(shap_data, row_id = 1) +
-    ggtitle("Waterfall plot of used features")
-  SF <- shapviz::sv_force(shap_data) +
-    ggtitle("Force plot of used features")
-  SI <- shapviz::sv_importance(shap_data, kind = "beeswarm") +
-    ggtitle("Beeswarm plot of used features")
-  # SD <- sv_dependence(shap_data, v = "eig5", "auto")
-
-  return(dplyr::lst(WF, SF, SI))
-}
-
-# File management ---------------------------------------------------------
-# All functions related to folder and file creation, deletion or import
-project_import <- function(project_path) {
-  imported_data <- dplyr::lst() # Create a list for data
-  imported_data_infos <-
-    data.table::data.table() # Create a table for informations about samples
-  studies_list <-
-    fs::dir_info(path = paste(project_path), recurse = FALSE) %>%
-    dplyr::filter(type == "directory") %$%
-    path
-
-  for (my_study in studies_list) {
-    information_files_list <-
-      fs::dir_info(path = my_study, recurse = TRUE) %>%
-      dplyr::filter(type == "file") %$%
-      path %>%
-      grep(pattern = "Informations",
-           x = .,
-           value = TRUE)
-
-    subject_informations <-
-      # Import subjects informations and clean column names
-      data.table::fread(
-        file = grep(
-          pattern = "Informations_subjects.*",
-          x = information_files_list,
-          value = TRUE
-        )
-      ) %>%
-      janitor::clean_names()
-    test_informations <-
-      # Import test informations and clean column names
-      data.table::fread(file = grep(
-        pattern = "Informations_tests.*",
-        x = information_files_list,
-        value = TRUE
-      )) %>%
-      janitor::clean_names()
-    data_infos <- subject_informations %>% # Merge informations
-      append(x = ., values = test_informations[1, ]) %>%
-      data.table::as.data.table()
-    files_list <- fs::dir_info(my_study, recurse = TRUE) %>%
-      dplyr::filter(type == "file")
-    files_list <- files_list$path
-    files_list <-
-      grep(pattern = ".xlsx",
-           x = files_list,
-           value = TRUE)
-    # Importing data
-    my_study <-
-      gsub(pattern = project_path,
-           replacement = "",
-           x = my_study)
-    my_list <-
-      sapply(
-        files_list,
-        readxl::read_excel,
-        .name_repair = "minimal",
-        na = c("", " ", "NA"),
-        col_type = "numeric",
-        simplify = FALSE,
-        USE.NAMES = TRUE
-      ) %>%
-      lapply(janitor::clean_names, sep_out = "")
-    imported_data <- append(x = imported_data, values = my_list)
-    imported_data_infos <-
-      rbind(x = imported_data_infos, values = data_infos)
-  }
-  names(imported_data) <-
-    gsub(
-      pattern = paste0(project_path, ".*/.*/"),
-      replacement = "",
-      x = names(imported_data)
-    ) %>%
-    gsub(pattern = ".xlsx",
-         replacement = "")
-  remove_names <-
-    setdiff(names(imported_data), imported_data_infos$subject) %>%
-    append(setdiff(imported_data_infos$subject, names(imported_data)))
-  imported_data <-
-    imported_data[names(imported_data) %in% remove_names == FALSE]
-  imported_data_infos <-
-    imported_data_infos[imported_data_infos$subject %in% remove_names == FALSE]
-  return(dplyr::lst("data" = imported_data, "infos" = imported_data_infos))
-}
-
-import_data <- function(tSNE_dims = 2) {
-  my_date <- format(Sys.time(), "%Y-%m-%d_%H.%M")
-
-  imported_data <-
-    project_import(project_path = easycsv::choose_dir())
-
-  infos <<- imported_data$infos
-  my_data <- imported_data$data %>%
-    common_col()
-
-  # Compute ratios
-  my_data <- lapply(my_data, \(x){
-    x$`ve/vo2` <- x$ve / x$vo2
-  } )
-
-  my_colnames <- colnames(my_data[[1]])
-
-  summary_simple <-
-    my_summary(my_data, my_data) %>% missRanger::missRanger()
-  summary_relative <-
-    compute_relative(summary_simple) %>% missRanger::missRanger()
-
-  keeped_rows <- summary_simple %>%
-    as.data.frame() %>%
-    dplyr::select_if(is.numeric) %>%
-    na.omit() %>%
-    rownames()
-
-  PCA_summary <-
-    lapply(my_data[keeped_rows %>% as.numeric()], missMDA::imputePCA) %>%
-    lapply(FUN = as.data.frame) %>%
-    lapply(FUN = dplyr::select, contains(my_colnames)) %>%
-    lapply(FUN = FactoMineR::PCA, graph = FALSE) %>%
-    lapply(FUN = "[", "eig") %>%
-    lapply(FUN = unlist) %>%
-    do.call(what = rbind, args = .) %>%
-    as.data.frame() %>%
-    tibble::rownames_to_column(.data = ., var = "subject")
-
-  tSNE_summary <-
-    Rtsne::Rtsne(
-      summary_simple %>%
-        dplyr::select_if(is.numeric) %>%
-        na.omit() %>%
-        scale(),
-      dims = tSNE_dims,
-      pca = F
-    ) %$%
-    .$Y %>%
-    as.data.frame() %>%
-    dplyr::rename(tSNE1 = "V1", tSNE2 = "V2") %>%
-    dplyr::mutate(ID = dplyr::row_number()) %>%
-    dplyr::inner_join(summary_simple %>%
-                        dplyr::mutate(ID = dplyr::row_number()),
-                      by = "ID")
-
-  # Cleaning ----------------------------------------------------------------
-  # Removes outliers in summaries
-  my_summaries <-
-    dplyr::lst(summary_simple, summary_relative, PCA_summary, tSNE_summary) %>%
-    `names<-`(value = c("absolute", "relative", "PCA", "tSNE"))
-
-  # Labelling ---------------------------------------------------------------
-  encoded_summaries <- lapply(X = my_summaries, FUN = df_encode)
-
-  dir.create(path = "Data")
-  rio::export_list(x = my_summaries, file = "Data/summary_%s.csv")
-}
-
+# Export ------------------------------------------------------------------
+# Export data functions
 result_save <- function() {
   dir_copy(path = "./EIH_Modeling_Classification_files/figure-html/",
            new_path = paste0("Output/", analysis_date))
   save.image(file = paste0("./Output/", analysis_date, "/global.RData"))
 }
 
-# Export ------------------------------------------------------------------
-# Export data functions
 lgbm_export <-
   function(#study,
     # name_seq,

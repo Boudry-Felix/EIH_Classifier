@@ -62,13 +62,13 @@ if choice["new_LGBM_params"]:
 
   study = optuna.create_study(direction='maximize')
   optuna.logging.set_verbosity(optuna.logging.CRITICAL)
-  study.optimize(objective, n_trials=int(r.optuna_trials), show_progress_bar=True)
+  study.optimize(objective, n_trials=int(150), show_progress_bar=True)
   print('Number of finished trials:', len(study.trials))
   print('Best trial:', study.best_trial.params)
 
   best_params_intensity = study.best_params
   best_accuracy_intensity = study.best_value
-  lgbm_model = lgb.LGBMClassifier(**best_params_intensity, n_estimators=r.lgbm_rounds)
+  lgbm_model = lgb.LGBMClassifier(**best_params_intensity, n_estimators=5000)
   lgbm_model.fit(train_x, train_y)
 
   predictions_intensity = lgbm_model.predict(test_x)

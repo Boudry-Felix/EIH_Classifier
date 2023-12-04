@@ -1,72 +1,80 @@
-# EIH Modeling: Classification
+# EIH prediction
 
-## Purpose and explanations
+## Purpose
 
-This project aims to create a model explaining the "Exercise Induced Hypoxia"
-(EIH) phenomenon. To do so we use data containing stress tests data and the
-blood oxygen saturation of each subject during this test. After importing those
-data we compute a summary for each subject's data. Once this is done we use two
-approaches:
+This project aims to create a model that would be able to detect if an athlete
+has Exercise Induced Hypoxaemia (EIH) without using it's direct indicator which
+is the saturation.
 
-1.  Firstly a descriptive one
-2.  Then a predictive one
+## Usage
 
-### Descriptive analysis
+Summary or time-series files that are used for this project have to be in the "Data" folder at the root of the project.
 
-This first approach is based on several clustering methods. The purpose is to
-determine if it is possible to regroup subjects using only gas exchange values
-in order to categorize them as EIH athletes or NEIH (not EIH) athletes. For more
-details about those methods, visit
-[scikit-learn](https://scikit-learn.org/stable/modules/clustering.html#clustering).
+If you don't already have a summary file containing features about each one of
+your subjects, you can create one using the 'summary_gen()' function that will
+put this file in the "Data" folder.
 
-### Predictive analysis
+This function only works if your files and projects are structured in the
+following way:
 
-This second approach is base on machine learning algorithms (GBM, lightGBM and
-DTC). The objective is to be able to discriminate EIH and non-EIH athletes using
-only the gas exchange data. For more details about those methods, visit
-[scikit-learn](https://scikit-learn.org/stable/supervised_learning.html).
+```
+raw_data_folder
+|
+|- Informations_about_studies.csv
+|- Study_1_folder
+|  |- Informations_about_subjects.csv
+|  |- Informations_about_tests.csv
+|  |- Gas_exchange_data_folder
+|      |- file_1.xlsx
+|      |- file_2.xlsx
+|      |- file_X.xslx
+|- Study_2_folder
+|  |- Informations_about_subjects.csv
+|  |- Informations_about_tests.csv
+|  |- Gas_exchange_data_folder_1
+|  |   |- file_1.xlsx
+|  |   |- file_2.xlsx
+|  |   |- file_X.xslx
+|  |- Gas_exchange_data_folder_1
+|      |- file_1.xlsx
+|      |- file_2.xlsx
+|      |- file_X.xslx
+etc.
+```
+
+Once the summary file(s) are created you can knit the document with the desired
+parameters. If you knit with options you can specify the summary files to use.
+
+## Analysis
+
+The project aimed to compare various models and methods to achieve the 
+classification, including clustering methods (k-means and hierearchical), 
+gradient boosted methods (LightGBM, XGBoost) and Neural Networks (pytabular, 
+keras). Each of those  approaches has it's own script and some of the methods 
+need parameters to be indicated (hardcoded for this project) in order to have 
+pertinent analysis.
+
+## Parameters
+
+- Cluster numbers
+- Cluster methods
+- LGBM rounds
+- Optuna trial
+- Optuna rounds
+- FLAML time budget
+
+(Some may have been forgotten, those are the most importants.)
 
 ## Data
 
-The data used were given by:
+The data used on our side and for the research paper were given by:
 
 -   Durand Fabienne
 -   Raberin Antoine
 -   Gaston Anne-Fleur
 -   Mucci Patrick
 
-## How to use the code
-
-### Project structure
-
-First a few folder are mandatory, if they don't exist they will be created and
-are used to store results and parameters:
-
--   Data : Contains all data used in this project, you can put your own data inside following the provided structure.
--   Environment : Stores .RData files with the environments of the previous scripts
--   Images : Stores the computed images
--   Output : Stores .rds files for specific r objects that are used in other scripts and shall be saved.
--   Params : A folder in which you can put computed parameters for the GBM analysis.
--   Scripts : Contains the different scripts of this project.
-
-### Data structure
-
-You can put your own data in the "Data"" folder but you have to follow a
-structure. In  the root folder (Data) you can put a CSV file with the
-informations about the different studies the data come from. You can also add
-folders for each study. In those folder you can put two CSV files, the first
-with informations about the subjects and the second one with informations about
-the tests. In the study folder you can add a folder with your test data (XLSX
-files not CSV!) with the structure you want.
-
-### Scripts
-
-Each script has a specific purpose described in it's "Informations" section and
-should run smoothly if you respected the data structure. You only have to
-configure the lightGBM parameter by putting the results of the optuna script
-(that can be found in "Output") into the "Params" folder. If this folder is
-empty or the parameters are set to NULL in the script and the optuna script will
-be executed to compute new parameters.
+Thank you!
 
 ## Contact
 
