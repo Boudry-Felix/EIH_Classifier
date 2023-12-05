@@ -24,18 +24,22 @@ params:
     label: "Path to multiple data sets folder:"
     value: "./Data"
     input: text
-  new_LGBM_params:
-    label: "Tune hyperparameters? (optuna)"
-    value: TRUE
-    input: checkbox
-  FLAML_params:
-    label: "Tune hyperparameters? (FLAML)"
-    value: TRUE
-    input: checkbox
-  discriminating_variables:
-    label: "Variables to predict and/or to exclude from clustering and training:"
-    value: c("saturation_rest", "saturation_end", "saturation_delta")
+  predict_label:
+    label: "Feature to predict:"
+    value: c("eih")
     input: text
+  excluded_variables:
+    label: "Features to exclude from clustering and training:"
+    value: c("saturation_rest", "saturation_end", "saturation_delta", "subject")
+    input: text
+  new_LGBM_params:
+    label: "Tune hyperparameters? (LGBM, w/ FLAML)"
+    value: TRUE
+    input: checkbox
+  new_XGBoost_params:
+    label: "Tune hyperparameters? (XGBoost, w/ Optuna)"
+    value: TRUE
+    input: checkbox
 bibliography: EIH_modeling.bib
 ---
 
@@ -75,16 +79,19 @@ library(tools)
 analysis_date <- format(Sys.time(), "%Y-%m-%d_%H.%M.%S")
 dir_create(path = paste0("Output/", analysis_date))
 
-# Parameters for the analysis
-## Parameters used in python script needs to be directly in .GlobalEnv
-optuna_rounds <- params$optuna_rounds
-optuna_trials <- params$optuna_trials
 ## Parsing and evaluating strings used as parameters to be used as code
-discriminating_variables <-
-  eval_knit_param(params$discriminating_variables)
+excluded_variables <-
+  eval_knit_param(params$excluded_variables)
+predict_label <-
+  eval_knit_param(params$predict_label)
+
 ## Manual parameters for the analysis
-cluster_number <- c(2)
-cluster_number_names <- c("two")
+cluster_number <- 2
+cluster_number_names <- "two"
+lgbm_split <- 0.70
+lgbm_rounds <- 50
+optuna_rounds <- 20
+optuna_trials <- 50
 ```
 
 ```{r Import & scripts, message=FALSE, warning=FALSE, include=FALSE, paged.print=TRUE}
@@ -103,7 +110,11 @@ my_envs <- lapply(X = imported_data_names, FUN = \(df_name) {
 
 # Source scripts for analysis
 for (df_name in imported_data_names) {
-  analysis_data <- imported_data[[df_name]]
+  analysis_data <- imported_data[[df_name]] %>% 
+    df_encode() %$%
+    encoded_data %>% 
+    missRanger() %>% 
+    clean_dataset()
   compute_env <- my_envs[[df_name]]
   source("./Scripts/Unsupervised.R", local = compute_env)
   source("./Scripts/Supervised.R", local = compute_env)
@@ -143,7 +154,7 @@ for (my_env in my_envs) {
 
 # Knitting parameters
 ```{r Infos}
-params
+params %>% do.call(what = rbind, args = .) %>% my_table()
 ```
 
 # References

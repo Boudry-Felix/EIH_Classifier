@@ -16,5 +16,5 @@ AutoAppendNewline: Yes
 StripTrailingWhitespace: Yes
 
 PythonType: conda
-PythonVersion: 3.11.4
+PythonVersion: 3.11.5
 PythonPath: ~/.conda/envs/EIH/bin/python3.11

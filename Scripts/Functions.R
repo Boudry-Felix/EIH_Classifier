@@ -195,12 +195,18 @@ my_summary <- function(df_list, df_names) {
 
 compute_relative <- function(input, cols) {
   maximum_columns <-
-    grep(pattern = cols, x = colnames(x = input), value = TRUE) %>%
-    grep(pattern = "max", x = ., value = TRUE) # List max columns
+    grep(pattern = cols,
+         x = colnames(x = input),
+         value = TRUE) %>%
+    grep(pattern = "max",
+         x = .,
+         value = TRUE) # List max columns
   for (my_column in maximum_columns) {
     study_rel()
   }
-  out_col <- grep(pattern = cols, x = colnames(input), value = TRUE)
+  out_col <- grep(pattern = cols,
+                  x = colnames(input),
+                  value = TRUE)
   output <- input[, c("subject", out_col)]
   return(output)
 }
@@ -245,37 +251,37 @@ df_encode <- function(input = my_data, list_names) {
   return(output)
 }
 
-data_read <- function(params = params) {
-  if (params$data != "none") {
-    imported_data_names <-
-      basename(params$data) %>%
+data_read <- function(fun_params = params) {
+  if (fun_params$data != "none") {
+    imported_data_names <<-
+      basename(fun_params$data) %>%
       file_path_sans_ext()
-    imported_data <-
-      params$data %>%
+    imported_data <<-
+      fun_params$data %>%
       fread(na.strings = c("NA", "na", "")) %>%
       lst() %>%
       `names<-`(value = imported_data_names)
-  } else if (params$data_list != "none") {
-    imported_data_names <-
-      params$data_list %>%
+  } else if (fun_params$data_list != "none") {
+    imported_data_names <<-
+      fun_params$data_list %>%
       get_knit_param() %>%
       basename() %>%
       file_path_sans_ext()
-    imported_data <-
+    imported_data <<-
       lapply(
-        X = params$data_list %>%
+        X = fun_params$data_list %>%
           get_knit_param(),
         FUN = fread,
         na.strings = c("NA", "na", "")
       ) %>%
       `names<-`(value = imported_data_names)
   } else {
-    imported_data_names <-
-      params$data_folder %>%
+    imported_data_names <<-
+      fun_params$data_folder %>%
       list.files() %>%
       file_path_sans_ext()
-    imported_data <-
-      list.files(path = params$data_folder,
+    imported_data <<-
+      list.files(path = fun_params$data_folder,
                  full.names = TRUE) %>%
       lapply(fread, na.strings = c("NA", "na", "")) %>%
       `names<-`(value = imported_data_names)
@@ -348,6 +354,13 @@ gbm_data_partition <- function(input, sep_col, sep_prop) {
   test_data <- # Create a test data set
     input[-split_indexes,]
   return(dplyr::lst(train_data, test_data))
+}
+
+clean_dataset <- function(input) {
+  input %>%
+    select(.data = ., -any_of(excluded_variables)) %>%
+    # scale(x = .) %>%
+    as.data.frame()
 }
 
 # Plots -------------------------------------------------------------------

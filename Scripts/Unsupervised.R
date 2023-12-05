@@ -19,13 +19,7 @@ require(fossil)
 # Clustering --------------------------------------------------------------
 # Compute and plot clusters
 cluster_data <- # Clean and select usable data
-  analysis_data %>%
-  select_if(is.numeric) %>%
-  select(.data = ., -any_of(discriminating_variables)) %>%
-  select(where(~ !all(is.na(.x)))) %>%
-  scale(x = .) %>%
-  as.data.frame() %>%
-  select_if(~ !any(is.na(.)))
+  select(.data = analysis_data, -any_of(predict_label))
 
 ## Cluster computation ----------------------------------------------------
 ## Compute clusters with different methods
@@ -65,19 +59,6 @@ hclust_td_data <-
     )
   ) %>%
   `names<-`(value = cluster_number_names)
-# dbscan_data <-
-#   dbscan(
-#     x = cluster_data,
-#     eps = params$dbscan_eps,
-#     minPts = params$dbscan_minPts
-#   )
-# optics_data <-
-#   optics(
-#     x = cluster_data,
-#     eps = params$optics_eps,
-#     minPts = params$optics_minPts
-#   ) %>%
-#   extractXi(xi = params$optics_xi)
 
 ## Result metrics ---------------------------------------------------------
 ## Compute confusion matrix to assert accuracy
@@ -92,8 +73,8 @@ kclust_confusion <-
     } %>% list,
     x = kclust_data,
     y = c(
-      analysis_data$eih %>% as.data.frame(),
-      analysis_data$eih_severity %>% as.data.frame()
+      analysis_data$eih %>% as.data.frame()
+      # analysis_data$eih_severity %>% as.data.frame()
     )
   )
 hclust_bu_confusion <-
@@ -107,8 +88,8 @@ hclust_bu_confusion <-
     } %>% list,
     x = hclust_bu_data,
     y = c(
-      analysis_data$eih %>% as.data.frame(),
-      analysis_data$eih_severity %>% as.data.frame()
+      analysis_data$eih %>% as.data.frame()
+      # analysis_data$eih_severity %>% as.data.frame()
     )
   )
 hclust_td_confusion <-
@@ -122,20 +103,10 @@ hclust_td_confusion <-
     } %>% list,
     x = hclust_td_data,
     y = c(
-      analysis_data$eih %>% as.data.frame(),
-      analysis_data$eih_severity %>% as.data.frame()
+      analysis_data$eih %>% as.data.frame()
+      # analysis_data$eih_severity %>% as.data.frame()
     )
   )
-# dbscan_rand <-
-#   rand.index(
-#     analysis_data$eih %>% as.factor() %>% as.numeric() %>% replace(is.na(.), 0),
-#     dbscan_data$cluster %>% as.numeric()
-#   )
-# optics_rand <-
-#   rand.index(
-#     analysis_data$eih %>% as.factor() %>% as.numeric() %>% replace(is.na(.), 0),
-#     optics_data$cluster %>% as.numeric()
-#   )
 
 ## Plotting ---------------------------------------------------------------
 
@@ -151,54 +122,25 @@ kclust_graph <-
              geom = NULL,
              show.clust.cent = FALSE
            ) +
-             {
-               if (length(unique(x[["cluster"]])) == 2)
-                 geom_point(aes(shape = analysis_data$eih))
-             } +
-             {
-               if (length(unique(x[["cluster"]])) == 4)
-                 geom_point(aes(shape = analysis_data$eih_severity))
-             } +
-             {
-               if (length(unique(x[["cluster"]])) == 2)
-                 ggtitle("K-means clustering for EIH status")
-             } +
-             {
-               if (length(unique(x[["cluster"]])) == 4)
-                 ggtitle("K-means clustering for EIH intensity")
-             } +
+             geom_point(aes(shape = analysis_data$eih %>% as.factor())) +
+             ggtitle("K-means clustering for EIH status") +
              labs(shape = "Status")
          }) %>%
   `names<-`(value = cluster_number_names)
 kclust_coord <-
-  lapply(X = kclust_data, FUN = \(x) {
-    plot_clus_coord(cluster_model = x, data = cluster_data) + {
-      if (length(unique(x[["cluster"]])) == 2)
-        ggtitle("K-means feature importance for EIH status")
-    } +
-      {
-        if (length(unique(x[["cluster"]])) == 4)
-          ggtitle("K-means feature importance for EIH intensity")
-      } +
-      theme(axis.text.x.bottom = element_text(angle = 45, size = 5))
-  }) %>%
+  lapply(X = kclust_data,
+         FUN = \(x) {
+           plot_clus_coord(cluster_model = x, data = cluster_data) +
+             ggtitle("K-means feature importance for EIH status") +
+             theme(axis.text.x.bottom = element_text(angle = 45, size = 5))
+         }) %>%
   `names<-`(value = cluster_number_names)
 hclust_bu_graph <- lapply(X = hclust_bu_data,
                           function(x) {
-                            if (length(unique(x[["cluster"]])) == 2)
-                            {
-                              my_label_cols <-
-                                analysis_data$eih %>%
-                                as.factor() %>%
-                                as.numeric()
-                            }
-                            else if (length(unique(x[["cluster"]])) == 4)
-                            {
-                              my_label_cols <-
-                                analysis_data$eih_severity %>%
-                                as.factor() %>%
-                                as.numeric()
-                            }
+                            my_label_cols <-
+                              analysis_data$eih %>%
+                              as.factor() %>%
+                              as.numeric()
                             fviz_dend(
                               x = x,
                               cex = 0.5,
@@ -207,32 +149,15 @@ hclust_bu_graph <- lapply(X = hclust_bu_data,
                               guides = "none",
                               type = "circular"
                             ) +
-                              {
-                                if (length(unique(x[["cluster"]])) == 2)
-                                  ggtitle("Hierarchical clustering for EIH status")
-                              } +
-                              {
-                                if (length(unique(x[["cluster"]])) == 4)
-                                  ggtitle("Hierarchical clustering for EIH intensity")
-                              }
+                              ggtitle("Hierarchical clustering for EIH status")
                           }) %>%
   `names<-`(value = cluster_number_names)
 hclust_td_graph <- lapply(X = hclust_td_data,
                           function(x) {
-                            if (length(unique(x[["cluster"]])) == 2)
-                            {
-                              my_label_cols <-
-                                analysis_data$eih %>%
-                                as.factor() %>%
-                                as.numeric()
-                            }
-                            else if (length(unique(x[["cluster"]])) == 4)
-                            {
-                              my_label_cols <-
-                                analysis_data$eih_severity %>%
-                                as.factor() %>%
-                                as.numeric()
-                            }
+                            my_label_cols <-
+                              analysis_data$eih %>%
+                              as.factor() %>%
+                              as.numeric()
                             fviz_dend(
                               x = x,
                               cex = 0.5,
@@ -241,23 +166,9 @@ hclust_td_graph <- lapply(X = hclust_td_data,
                               guides = "none",
                               type = "circular"
                             ) +
-                              {
-                                if (length(unique(x[["cluster"]])) == 2)
-                                  ggtitle("Hierarchical clustering for EIH status")
-                              } +
-                              {
-                                if (length(unique(x[["cluster"]])) == 4)
-                                  ggtitle("Hierarchical clustering for EIH intensity")
-                              }
+                              ggtitle("Hierarchical clustering for EIH status")
                           }) %>%
   `names<-`(value = cluster_number_names)
-# dbscan_graph <- fviz_cluster(dbscan_data,
-#                              cluster_data,
-#                              geom = "point",
-#                              show.clust.cent = FALSE) +
-#   guides(shape = FALSE)
-# optics_graph <- plot(optics_data)
-# optics_graph <- recordPlot()
 
 ### Boxplots --------------------------------------------------------------
 ### Boxplots of analyzed data by cluster

@@ -50,7 +50,7 @@ if choice["new_LGBM_params"]:
         'is_unbalance':True
       }
 
-      gbm = lgb.train(param, dtrain, num_boost_round=150)
+      gbm = lgb.train(param, dtrain, num_boost_round=int(r.optuna_rounds))
       preds = gbm.predict(test_x)
       pred_labels = np.rint(preds)
       accuracy = sklearn.metrics.accuracy_score(test_y, pred_labels)
@@ -58,13 +58,13 @@ if choice["new_LGBM_params"]:
   
   study = optuna.create_study(direction='maximize')
   optuna.logging.set_verbosity(optuna.logging.CRITICAL)
-  study.optimize(objective, n_trials=int(5000), show_progress_bar=True)
+  study.optimize(objective, n_trials=int(r.optuna_trials), show_progress_bar=True)
   print('Number of finished trials:', len(study.trials))
   print('Best trial:', study.best_trial.params)
   
   best_params_status = study.best_params
   best_accuracy_status = study.best_value
-  lgbm_model = lgb.LGBMClassifier(**best_params_status, n_estimators=r.lgbm_rounds)
+  lgbm_model = lgb.LGBMClassifier(**best_params_status, n_estimators=50)
   lgbm_model.fit(train_x, train_y)
   
   predictions_status = lgbm_model.predict(test_x)
