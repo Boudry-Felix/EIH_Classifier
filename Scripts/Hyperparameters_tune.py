@@ -10,7 +10,7 @@ from flaml import AutoML
 import matplotlib.pyplot as plt
 import shap
 
-sampler = optuna.samplers.TPESampler(seed=10)
+sampler = optuna.samplers.TPESampler(seed=123)
 
 choice = r.params
 
@@ -56,7 +56,7 @@ if choice["new_LGBM_params"]:
       accuracy = sklearn.metrics.accuracy_score(test_y, pred_labels)
       return accuracy
   
-  study = optuna.create_study(direction='maximize')
+  study = optuna.create_study(direction='maximize', sampler = sampler)
   optuna.logging.set_verbosity(optuna.logging.CRITICAL)
   study.optimize(objective, n_trials=int(r.optuna_trials), show_progress_bar=True)
   print('Number of finished trials:', len(study.trials))

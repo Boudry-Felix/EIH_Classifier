@@ -51,7 +51,7 @@ knitr::opts_chunk$set(
   warning = FALSE
 )
 
-set.seed(seed = 123456)
+set.seed(seed = 123)
 
 # Import libraries
 source("./Scripts/Functions.R")
