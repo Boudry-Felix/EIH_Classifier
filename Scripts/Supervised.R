@@ -17,98 +17,52 @@ require(DiagrammeR)
 require(missRanger)
 require(fs)
 
-lgbm_rounds <<- params$lgbm_rounds
-
-# Analysis ----------------------------------------------------------------
-gbm_data <-
-  analysis_data
-gbm_data$eih <-
-  factor(gbm_data$eih) %>%
-  as.numeric() - 1
-gbm_data_status <- gbm_data %>%
-  # select(.data = ., -any_of(c("eih_severity"))) %>%
-  gbm_data_partition(sep_col = "eih",
+# Data preparation --------------------------------------------------------
+ml_data <-
+  gbm_data_partition(input = analysis_data,
+                     sep_col = "eih",
                      sep_prop = lgbm_split)
-
-## Light GBM analysis -----------------------------------------------------
-compute_env$lgbm_train_data_status <-
-  split.default(x = gbm_data_status$train_data,
-                f = names(gbm_data_status$train_data) == "eih") %>%
-  `names<-`(value = c("values", "label"))
-lgbm_dtrain_status <-
-  lgb.Dataset(data = lgbm_train_data_status[["values"]] %>% as.matrix(),
-              label = lgbm_train_data_status[["label"]] %>% as.matrix())
-
-lgbm_test_data_status <-
-  split.default(x = gbm_data_status$test_data,
-                f = names(gbm_data_status$test_data) == "eih") %>%
+ml_train_data <-
+  split.default(x = ml_data$train_data,
+                f = names(ml_data$train_data) == "eih") %>%
   `names<-`(value = c("values", "label"))
 
-lgbm_dtest_status <- lgb.Dataset.create.valid(
-  dataset = lgbm_dtrain_status,
-  data = lgbm_test_data_status[["values"]] %>% as.matrix(),
-  label = lgbm_test_data_status[["label"]] %>% as.matrix()
-)
+ml_test_data <-
+  split.default(x = ml_data$test_data,
+                f = names(ml_data$test_data) == "eih") %>%
+  `names<-`(value = c("values", "label"))
 
-### Configure -------------------------------------------------------------
-lgbm_train_data_status <<- compute_env$lgbm_train_data_status
+# Needed to use variables with reticulate
+ml_train_data <<- ml_train_data
+ml_test_data <<- ml_test_data
 
-lgbm_test_data_status <<- compute_env$lgbm_test_data_status
+# Light GBM analysis ------------------------------------------------------
+source_python("./Scripts/ML.py")
 
-if (params$new_LGBM_params) {
-  source_python("./Scripts/Hyperparameters_tune.py")
-  my_params_status <- study$best_params %>%
-    lapply(FUN = gsub,
-           pattern = ",",
-           replacement = ".")
-} else {
-  my_config <- paste0("params/LightGBM_model", ".rds")
-  my_params <- readRDS(file = my_config)
-}
+## Plotting ---------------------------------------------------------------
+## Feature importance
+lgbm_model <- lgb.load("lgbm_model.txt")
+lgbm_test_data_pred <- as.matrix(x = ml_test_data$values)
 
-lgbm_params_status <- c(list(
-  # Define parameters for lightGBM training
-  objective = 'binary',
-  boosting = "dart",
-  metric = "binary_logloss"
-),
-my_params_status)
-lgbm_valids_status <-
-  list(test = lgbm_dtest_status) # Create a valid (reference) data set
+lgbm_importance <- lgb.importance(lgbm_model, percentage = TRUE)
+lgbm_importance_plot <-
+  lgb.plot.importance(lgbm_importance, measure = "Gain", top_n = 10)
+lgbm_importance_plot_multi <-
+  lgb.plot.interpretation(lgbm_importance_plot)
+lgbm_plot <-
+  lgbm_plots(lgbm_model = lgbm_model, lgbm_test_data_pred = lgbm_test_data_pred)
 
-### Train model -----------------------------------------------------------
-# source(file = "./Scripts/LGBM_rounds_tune.R") # Compute optimal nrounds
-lgbm_model_status <- lgb.load("lgbm_model.txt")
-
-### Test model ------------------------------------------------------------
-lgbm_test_data_pred_status <- as.matrix(x = lgbm_test_data_status$values)
-lgbm_pred_y_status <- predictions_status
-lgbm_confusion_status <- conf_matrix_status
-
-### Plotting --------------------------------------------------------------
-### Feature importance
-lgbm_importance_status <- lgb.importance(lgbm_model_status, percentage = TRUE)
-lgbm_importance_plot_status <-
-  lgb.plot.importance(lgbm_importance_status, measure = "Gain", top_n = 10)
-lgbm_importance_plot_multi_status <-
-  lgb.plot.interpretation(lgbm_importance_plot_status)
-lgbm_plot_status <-
-  lgbm_plots(lgbm_model = lgbm_model_status, lgbm_test_data_pred = lgbm_test_data_pred_status)
-
-lgbm_model_results_status <-
+lgbm_model_results <-
   lst(
-    lgbm_model_status,
-    lgbm_confusion_status,
-    lgbm_importance_plot_status,
-    lgbm_importance_plot_multi_status,
-    lgbm_plot_status
+    lgbm_model,
+    lgbm_confusion,
+    lgbm_importance_plot,
+    lgbm_importance_plot_multi,
+    lgbm_plot
   )
-
-# Data structure ----------------------------------------------------------
-dir_create(path = paste0("Output/", analysis_date, "/params/"))
-lgbm_export(#study = study,
-  lgbm_model_results = lgbm_model_results_status)
 
 # Export data -------------------------------------------------------------
 # Save environment to avoid recomputing
+dir_create(path = paste0("Output/", analysis_date, "/params/"))
+lgbm_export(lgbm_model_results = lgbm_model_results)
 save.image(file = paste0("./Output/", analysis_date, "/supervised.RData"))

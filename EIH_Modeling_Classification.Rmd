@@ -30,16 +30,8 @@ params:
     input: text
   excluded_variables:
     label: "Features to exclude from clustering and training:"
-    value: c("saturation_rest", "saturation_end", "saturation_delta", "subject")
+    value: c("saturation_rest", "saturation_end", "saturation_delta", "subject", "eih_severity")
     input: text
-  new_LGBM_params:
-    label: "Tune hyperparameters? (LGBM, w/ FLAML)"
-    value: TRUE
-    input: checkbox
-  new_XGBoost_params:
-    label: "Tune hyperparameters? (XGBoost, w/ Optuna)"
-    value: TRUE
-    input: checkbox
 bibliography: EIH_modeling.bib
 ---
 
@@ -94,7 +86,7 @@ optuna_rounds <- 20
 optuna_trials <- 50
 ```
 
-```{r Import & scripts, message=FALSE, warning=FALSE, include=FALSE, paged.print=TRUE}
+```{r Import & scripts, include=FALSE}
 # Import selected dataset
 data_read()
 
@@ -110,11 +102,11 @@ my_envs <- lapply(X = imported_data_names, FUN = \(df_name) {
 
 # Source scripts for analysis
 for (df_name in imported_data_names) {
-  analysis_data <- imported_data[[df_name]] %>% 
+  analysis_data <- imported_data[[df_name]] %>%
     df_encode() %$%
-    encoded_data %>% 
-    missRanger() %>% 
-    clean_dataset()
+    encoded_data %>%
+    clean_dataset() %>% 
+    missRanger()
   compute_env <- my_envs[[df_name]]
   source("./Scripts/Unsupervised.R", local = compute_env)
   source("./Scripts/Supervised.R", local = compute_env)

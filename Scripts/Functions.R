@@ -357,10 +357,12 @@ gbm_data_partition <- function(input, sep_col, sep_prop) {
 }
 
 clean_dataset <- function(input) {
-  input %>%
-    select(.data = ., -any_of(excluded_variables)) %>%
+  output <- select(.data = input, -any_of(excluded_variables)) %>%
     # scale(x = .) %>%
     as.data.frame()
+  output[output == 0] <- NA
+  output[output == Inf] <- NA
+  return(output)
 }
 
 # Plots -------------------------------------------------------------------

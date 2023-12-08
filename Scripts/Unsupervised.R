@@ -24,151 +24,81 @@ cluster_data <- # Clean and select usable data
 ## Cluster computation ----------------------------------------------------
 ## Compute clusters with different methods
 kclust_data <-
-  lapply(cluster_number,
-         \(x)
-         eclust(
-           cluster_data,
-           k = x,
-           FUNcluster = "kmeans",
-           graph = FALSE
-         )) %>%
-  `names<-`(value = cluster_number_names)
+  eclust(cluster_data,
+         k = cluster_number,
+         FUNcluster = "kmeans",
+         graph = FALSE)
 hclust_bu_data <-
-  lapply(
-    cluster_number,
-    \(x)
-    eclust(
-      cluster_data,
-      k = x,
-      FUNcluster = "hclust",
-      hc_method = "ward.D2",
-      graph = FALSE
-    )
-  ) %>%
-  `names<-`(value = cluster_number_names)
+  eclust(
+    cluster_data,
+    k = cluster_number,
+    FUNcluster = "hclust",
+    hc_method = "ward.D2",
+    graph = FALSE
+  )
 hclust_td_data <-
-  lapply(
-    cluster_number,
-    \(x)
-    eclust(
-      cluster_data,
-      k = x,
-      FUNcluster = "diana",
-      hc_method = "ward.D2",
-      graph = FALSE
-    )
-  ) %>%
-  `names<-`(value = cluster_number_names)
+  eclust(
+    cluster_data,
+    k = cluster_number,
+    FUNcluster = "diana",
+    hc_method = "ward.D2",
+    graph = FALSE
+  )
 
 ## Result metrics ---------------------------------------------------------
 ## Compute confusion matrix to assert accuracy
 kclust_confusion <-
-  mapply(
-    function(x, y) {
-      confusionMatrix(x[["cluster"]] %>% as.factor(),
-                      y %>% as.factor() %>%
-                        as.numeric() %>%
-                        as.factor() %>%
-                        rev())
-    } %>% list,
-    x = kclust_data,
-    y = c(
-      analysis_data$eih %>% as.data.frame()
-      # analysis_data$eih_severity %>% as.data.frame()
-    )
-  )
+  confusionMatrix(kclust_data$cluster %>% as.factor(),
+                  analysis_data$eih %>% as.factor())
 hclust_bu_confusion <-
-  mapply(
-    function(x, y) {
-      confusionMatrix(x[["cluster"]] %>% as.factor(),
-                      y %>% as.factor() %>%
-                        as.numeric() %>%
-                        as.factor() %>%
-                        rev())
-    } %>% list,
-    x = hclust_bu_data,
-    y = c(
-      analysis_data$eih %>% as.data.frame()
-      # analysis_data$eih_severity %>% as.data.frame()
-    )
-  )
+  confusionMatrix(hclust_bu_data$cluster %>% as.factor(),
+                  analysis_data$eih %>% as.factor())
 hclust_td_confusion <-
-  mapply(
-    function(x, y) {
-      confusionMatrix(x[["cluster"]] %>% as.factor(),
-                      y %>% as.factor() %>%
-                        as.numeric() %>%
-                        as.factor() %>%
-                        rev())
-    } %>% list,
-    x = hclust_td_data,
-    y = c(
-      analysis_data$eih %>% as.data.frame()
-      # analysis_data$eih_severity %>% as.data.frame()
-    )
-  )
+  confusionMatrix(hclust_td_data$cluster %>% as.factor(),
+                  analysis_data$eih %>% as.factor())
 
 ## Plotting ---------------------------------------------------------------
 
 ### Cluster plots ---------------------------------------------------------
 ### Graphical representations of the computed clusters
 kclust_graph <-
-  lapply(kclust_data,
-         function(x) {
-           x <- append(x = x, values = analysis_data)
-           fviz_cluster(
-             object = x,
-             data = analysis_data,
-             geom = NULL,
-             show.clust.cent = FALSE
-           ) +
-             geom_point(aes(shape = analysis_data$eih %>% as.factor())) +
-             ggtitle("K-means clustering for EIH status") +
-             labs(shape = "Status")
-         }) %>%
-  `names<-`(value = cluster_number_names)
+  fviz_cluster(
+    object = kclust_data,
+    data = analysis_data,
+    geom = NULL,
+    show.clust.cent = FALSE
+  ) +
+  geom_point(aes(shape = analysis_data$eih %>% as.factor())) +
+  ggtitle("K-means clustering for EIH status") +
+  labs(shape = "Status")
 kclust_coord <-
-  lapply(X = kclust_data,
-         FUN = \(x) {
-           plot_clus_coord(cluster_model = x, data = cluster_data) +
-             ggtitle("K-means feature importance for EIH status") +
-             theme(axis.text.x.bottom = element_text(angle = 45, size = 5))
-         }) %>%
-  `names<-`(value = cluster_number_names)
-hclust_bu_graph <- lapply(X = hclust_bu_data,
-                          function(x) {
-                            my_label_cols <-
-                              analysis_data$eih %>%
-                              as.factor() %>%
-                              as.numeric()
-                            fviz_dend(
-                              x = x,
-                              cex = 0.5,
-                              label_cols = my_label_cols,
-                              horiz = TRUE,
-                              guides = "none",
-                              type = "circular"
-                            ) +
-                              ggtitle("Hierarchical clustering for EIH status")
-                          }) %>%
-  `names<-`(value = cluster_number_names)
-hclust_td_graph <- lapply(X = hclust_td_data,
-                          function(x) {
-                            my_label_cols <-
-                              analysis_data$eih %>%
-                              as.factor() %>%
-                              as.numeric()
-                            fviz_dend(
-                              x = x,
-                              cex = 0.5,
-                              label_cols = my_label_cols,
-                              horiz = TRUE,
-                              guides = "none",
-                              type = "circular"
-                            ) +
-                              ggtitle("Hierarchical clustering for EIH status")
-                          }) %>%
-  `names<-`(value = cluster_number_names)
+  plot_clus_coord(cluster_model = kclust_data, data = cluster_data) +
+  ggtitle("K-means feature importance for EIH status") +
+  theme(axis.text.x.bottom = element_text(angle = 45, size = 5))
+my_label_cols <-
+  analysis_data$eih %>%
+  as.factor() %>%
+  as.numeric()
+hclust_bu_graph <-
+  fviz_dend(
+    x = hclust_bu_data,
+    cex = 0.5,
+    label_cols = my_label_cols,
+    horiz = TRUE,
+    guides = "none",
+    type = "circular"
+  ) +
+  ggtitle("Hierarchical clustering for EIH status")
+hclust_td_graph <-
+  fviz_dend(
+    x = hclust_td_data,
+    cex = 0.5,
+    label_cols = my_label_cols,
+    horiz = TRUE,
+    guides = "none",
+    type = "circular"
+  ) +
+  ggtitle("Hierarchical clustering for EIH status")
 
 ### Boxplots --------------------------------------------------------------
 ### Boxplots of analyzed data by cluster
@@ -179,14 +109,15 @@ plot_df <-
     "cbind",
     list(
       cluster_data,
-      kclust = lapply(X = kclust_data, FUN = "[[", "cluster"),
-      hclust_td = lapply(X = hclust_bu_data, FUN = "[[", "cluster"),
-      hclust_bu = lapply(X = hclust_td_data, FUN = "[[", "cluster")
+      kclust = kclust_data$cluster,
+      hclust_td = hclust_bu_data$cluster,
+      hclust_bu = hclust_td_data$cluster
     ),
     envir = .GlobalEnv
   )
 
-cluster_columns <- # Select cluster columns
+cluster_columns <-
+  # Select cluster columns
   colnames(x = .GlobalEnv$plot_df[grepl(pattern = "clust", x = colnames(.GlobalEnv$plot_df))])
 
 # Plotting boxplots for each variable in each cluster
