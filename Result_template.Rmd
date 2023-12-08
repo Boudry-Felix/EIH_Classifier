@@ -87,3 +87,25 @@ lgbm_importance_plot %>%
 lgbm_plot %>%
   walk(print)
 ```
+
+#### XGBoost
+
+```{r}
+xgboost_accuracy
+xgboost_best_accuracy
+xgboost_best_params
+xgboost_confusion
+t(as.data.frame(xgboost_model$params[c(
+  "boosting",
+  "lambda_l1",
+  "lambda_l2",
+  "num_leaves",
+  "max_depth",
+  "feature_fraction",
+  "bagging_fraction",
+  "bagging_freq",
+  "learning_rate"
+)])) %>% my_table()
+xgboost_importance_plot %>%
+  xgb.plot.importance()
+```

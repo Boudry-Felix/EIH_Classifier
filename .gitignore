@@ -40,9 +40,8 @@ Data
 *.bib
 *.log
 *.tex
+*.txt
 Data_raw
 figure
 EIH_Modeling_Classification_files
 EIH_Modeling_Classification.md
-lgbm_model.txt
-lgbm_model2.txt

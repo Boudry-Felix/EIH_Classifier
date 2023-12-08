@@ -16,8 +16,10 @@ require(shapviz)
 require(DiagrammeR)
 require(missRanger)
 require(fs)
+require(xgboost)
 
 # Data preparation --------------------------------------------------------
+analysis_data$eih <- analysis_data$eih - 1
 ml_data <-
   gbm_data_partition(input = analysis_data,
                      sep_col = "eih",
@@ -36,19 +38,22 @@ ml_test_data <-
 ml_train_data <<- ml_train_data
 ml_test_data <<- ml_test_data
 
-# Light GBM analysis ------------------------------------------------------
 source_python("./Scripts/ML.py")
 
-## Plotting ---------------------------------------------------------------
-## Feature importance
+# Light GBM analysis ------------------------------------------------------
 lgbm_model <- lgb.load("lgbm_model.txt")
 lgbm_test_data_pred <- as.matrix(x = ml_test_data$values)
 
-lgbm_importance <- lgb.importance(lgbm_model, percentage = TRUE)
+## Plotting ---------------------------------------------------------------
+## Feature importance
+lgbm_importance <-
+  lgb.importance(model = lgbm_model, percentage = TRUE)
 lgbm_importance_plot <-
-  lgb.plot.importance(lgbm_importance, measure = "Gain", top_n = 10)
+  lgb.plot.importance(tree_imp = lgbm_importance,
+                      measure = "Gain",
+                      top_n = 10)
 lgbm_importance_plot_multi <-
-  lgb.plot.interpretation(lgbm_importance_plot)
+  lgb.plot.interpretation(tree_interpretation_dt = lgbm_importance_plot)
 lgbm_plot <-
   lgbm_plots(lgbm_model = lgbm_model, lgbm_test_data_pred = lgbm_test_data_pred)
 
@@ -60,6 +65,24 @@ lgbm_model_results <-
     lgbm_importance_plot_multi,
     lgbm_plot
   )
+
+# XGBoost analysis --------------------------------------------------------
+xgboost_model <- xgb.load("xgboost_model.txt")
+xgboost_test_data_pred <- as.matrix(x = ml_test_data$values)
+
+## Plotting ---------------------------------------------------------------
+## Feature importance
+xgboost_importance <-
+  xgb.importance(model = xgboost_model, feature_names = compute_env$feature_names)
+xgboost_importance_plot <-
+  xgb.plot.importance(importance_matrix = xgboost_importance,
+                      measure = "Gain",
+                      top_n = 10)
+
+xgboost_model_results <-
+  lst(xgboost_model,
+      xgboost_confusion,
+      xgboost_importance_plot)
 
 # Export data -------------------------------------------------------------
 # Save environment to avoid recomputing
