@@ -49,7 +49,7 @@ study_lgbm.optimize(lgbm_tune, n_trials=int(r.optuna_trials), show_progress_bar=
 
 lgbm_best_params = study_lgbm.best_params
 lgbm_best_accuracy = study_lgbm.best_value
-lgbm_model = lgb.LGBMClassifier(**lgbm_best_params, n_estimators=50)
+lgbm_model = lgb.LGBMClassifier(**lgbm_best_params, n_estimators=int(r.lgbm_rounds))
 lgbm_model.fit(train_x, train_y)
 
 lgbm_pred_y = lgbm_model.predict(test_x)
@@ -87,7 +87,7 @@ study_xgboost.optimize(xgboost_tune, n_trials=int(r.optuna_trials), show_progres
 
 xgboost_best_params = study_xgboost.best_params
 xgboost_best_accuracy = study_xgboost.best_value
-xgboost_model = XGBClassifier(eval_metric="mlogloss")
+xgboost_model = XGBClassifier(eval_metric="mlogloss", n_estimator=int(r.xgboost_rounds))
 xgboost_model.fit(train_x, train_y)
 
 feature_names = xgboost_model.get_booster().feature_names

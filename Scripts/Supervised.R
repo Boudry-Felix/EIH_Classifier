@@ -39,6 +39,7 @@ ml_train_data <<- ml_train_data
 ml_test_data <<- ml_test_data
 
 source_python("./Scripts/ML.py")
+source_python("./Scripts/DL.py")
 
 # Light GBM analysis ------------------------------------------------------
 lgbm_model <- lgb.load("lgbm_model.txt")

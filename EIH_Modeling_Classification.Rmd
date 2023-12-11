@@ -82,6 +82,7 @@ cluster_number <- 2
 cluster_number_names <- "two"
 lgbm_split <- 0.70
 lgbm_rounds <- 50
+xgboost_rounds <- 50
 optuna_rounds <- 20
 optuna_trials <- 50
 ```
@@ -133,7 +134,7 @@ oxygen is diminished.
 If the cardiac system is one of the most known limiting, the pulmonary system
 can also participated in the observed limitations. This system is complicated
 and the pulmonary anatomy is composed by several "section". A known
-physiopathology impact athlete's performances is the exercise-induces hypoxemia
+phenomenon impacting athlete's performances is the exercise-induces hypoxaemia
 (EIH) (@raberinHypoxemieInduiteExercice2019). The purpose of this work is to be
 able to classify athletes as EIH or NEIH without using the direct indicator
 (saturation).
@@ -145,6 +146,9 @@ for (my_env in my_envs) {
 ```
 
 # Knitting parameters
+
+The following parameters were used as input to create this report:
+
 ```{r Infos}
 params %>% do.call(what = rbind, args = .) %>% my_table()
 ```

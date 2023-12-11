@@ -15,6 +15,9 @@ knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 
 ### Subjects
 
+The data used for this part of the work are characterized by the following 
+features:
+
 ```{r}
 analysis_data <- as.data.frame(analysis_data)
 describe(x = analysis_data[c("age",
@@ -37,6 +40,9 @@ describe(x = analysis_data[c("age",
 ## Results
 
 ### Unsupervised learning
+
+The unsupervised approach is based on algorithms that don't need labels to
+create a classification. This mainly include clustering algorithms.
 
 #### K-means clustering
 
@@ -61,6 +67,9 @@ hclust_td_confusion
 ```
 
 ### Supervised learning
+
+The supervised approach, compared to the unsupervised one, require labels to try 
+a classification and the correct the classification process and criteria.
 
 #### LightGBM
 
