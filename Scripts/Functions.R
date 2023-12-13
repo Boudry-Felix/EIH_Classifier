@@ -258,7 +258,7 @@ data_read <- function(fun_params = params) {
       file_path_sans_ext()
     imported_data <<-
       fun_params$data %>%
-      fread(na.strings = c("NA", "na", "")) %>%
+      fread(na.strings = c("NA", "na", "", "Inf")) %>%
       lst() %>%
       `names<-`(value = imported_data_names)
   } else if (fun_params$data_list != "none") {
@@ -272,7 +272,7 @@ data_read <- function(fun_params = params) {
         X = fun_params$data_list %>%
           get_knit_param(),
         FUN = fread,
-        na.strings = c("NA", "na", "")
+        na.strings = c("NA", "na", "", "Inf")
       ) %>%
       `names<-`(value = imported_data_names)
   } else {
@@ -283,7 +283,7 @@ data_read <- function(fun_params = params) {
     imported_data <<-
       list.files(path = fun_params$data_folder,
                  full.names = TRUE) %>%
-      lapply(fread, na.strings = c("NA", "na", "")) %>%
+      lapply(fread, na.strings = c("NA", "na", "", "Inf")) %>%
       `names<-`(value = imported_data_names)
   }
 }
@@ -337,14 +337,6 @@ confusion_list_export <- function(my_pat) {
   }
 }
 
-rmd_plot2 <- function(my_pat) {
-  ls(pattern = paste0(my_pat, "_graph"), envir = my_env) %>%
-    lapply(get, envir = my_env) %>%
-    walk(print)
-  ls(pattern = paste0(my_pat, "_rand"), envir = my_env) %>%
-    lapply(get, envir = my_env)
-}
-
 # Compute -----------------------------------------------------------------
 gbm_data_partition <- function(input, sep_col, sep_prop) {
   split_indexes <- # Separate data in two using p
@@ -362,6 +354,7 @@ clean_dataset <- function(input) {
     as.data.frame()
   output[output == 0] <- NA
   output[output == Inf] <- NA
+  output <- select(.data = output, -nearZeroVar(output, freqCut = 99/1))
   return(output)
 }
 
@@ -381,6 +374,10 @@ boxplots_by_clust <- function(data_col, cluster_col, used_env) {
 lgb.plot.tree <- function(model = NULL,
                           tree = NULL,
                           rules = NULL) {
+  ### Args:
+  ###   model: LGBM booster
+  ###   tree: id of the tree to plot
+
   # check model is lgb.Booster
   if (!inherits(model, "lgb.Booster")) {
     stop("model: Has to be an object of class lgb.Booster")
@@ -539,9 +536,7 @@ lgbm_plots <- function(lgbm_model, lgbm_test_data_pred) {
     ggtitle("Force plot of used features")
   SI <- shapviz::sv_importance(shap_data, kind = "beeswarm") +
     ggtitle("Beeswarm plot of used features")
-  # SD <- sv_dependence(shap_data, v = "eig5", "auto")
 
-  # TR <- lgb.plot.tree(lgbm_model, tree = 0)
   return(dplyr::lst(WF, SF, SI))
 }
 
@@ -561,22 +556,51 @@ lgbm_export <-
       object = lgbm_model_results,
       file = paste0("Output/",
                     analysis_date,
-                    "/params/LightGBM_model",
+                    "/params/lgbm_model",
                     ".rds")
     )
-    if (exists("study")) {
+    if (exists("study_lgbm", envir = compute_env)) {
       saveRDS(
-        object = as.list(study[["best_params"]]),
+        object = as.list(compute_env$study_lgbm[["best_params"]]),
         file = paste0("Output/",
                       analysis_date,
-                      "/params/Best_params",
+                      "/params/lgbm_best_params",
                       ".rds")
       )
       saveRDS(
-        object = study,
+        object = compute_env$study_lgbm,
         file = paste0("Output/",
                       analysis_date,
-                      "/params/Optuna_study",
+                      "/params/lgbm_optuna_study",
+                      ".rds")
+      )
+    }
+  }
+
+xgboost_export <-
+  function(#study,
+    # name_seq,
+    xgboost_model_results) {
+    saveRDS(
+      object = xgboost_model_results,
+      file = paste0("Output/",
+                    analysis_date,
+                    "/params/xgboost_model",
+                    ".rds")
+    )
+    if (exists("study_xgboost", envir = compute_env)) {
+      saveRDS(
+        object = as.list(compute_env$study_xgboost[["best_params"]]),
+        file = paste0("Output/",
+                      analysis_date,
+                      "/params/xgboost_best_params",
+                      ".rds")
+      )
+      saveRDS(
+        object = compute_env$study_xgboost,
+        file = paste0("Output/",
+                      analysis_date,
+                      "/params/xgboost_optuna_study",
                       ".rds")
       )
     }

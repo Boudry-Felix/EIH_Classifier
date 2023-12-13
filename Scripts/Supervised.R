@@ -23,7 +23,10 @@ analysis_data$eih <- analysis_data$eih - 1
 ml_data <-
   gbm_data_partition(input = analysis_data,
                      sep_col = "eih",
-                     sep_prop = lgbm_split)
+                     sep_prop = ml_split)
+ml_train <<- ml_data$train_data
+ml_test <<- ml_data$test_data
+
 ml_train_data <-
   split.default(x = ml_data$train_data,
                 f = names(ml_data$train_data) == "eih") %>%
@@ -62,6 +65,10 @@ lgbm_model_results <-
   lst(
     lgbm_model,
     lgbm_confusion,
+    lgbm_accuracy,
+    lgbm_best_accuracy,
+    lgbm_kappa,
+    lgbm_f1,
     lgbm_importance_plot,
     lgbm_importance_plot_multi,
     lgbm_plot
@@ -83,10 +90,18 @@ xgboost_importance_plot <-
 xgboost_model_results <-
   lst(xgboost_model,
       xgboost_confusion,
+      xgboost_accuracy,
+      xgboost_best_accuracy,
+      xgboost_kappa,
+      xgboost_f1,
       xgboost_importance_plot)
 
 # Export data -------------------------------------------------------------
 # Save environment to avoid recomputing
 dir_create(path = paste0("Output/", analysis_date, "/params/"))
+dir_create(path = paste0("Output/", analysis_date, "/models/"))
+file_move(path = "lgbm_model.txt", new_path = paste0("Output/", analysis_date, "/models/lgbm_model.txt"))
+file_move(path = "xgboost_model.txt", new_path = paste0("Output/", analysis_date, "/models/xgboost_model.txt"))
 lgbm_export(lgbm_model_results = lgbm_model_results)
+xgboost_export(xgboost_model_results = xgboost_model_results)
 save.image(file = paste0("./Output/", analysis_date, "/supervised.RData"))

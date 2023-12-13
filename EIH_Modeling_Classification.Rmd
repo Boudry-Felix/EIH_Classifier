@@ -12,6 +12,10 @@ output:
     fig_caption: yes
     keep_md: yes
 params:
+  seed:
+    label: "Seed:"
+    value: 42
+    input: numeric
   data:
     label: "Input dataset:"
     value: none
@@ -42,8 +46,8 @@ knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE
 )
-
-set.seed(seed = 123)
+project_seed <- params$seed # runif(n = 1, min = 1, max = 1000)
+set.seed(seed = project_seed)
 
 # Import libraries
 source("./Scripts/Functions.R")
@@ -80,11 +84,10 @@ predict_label <-
 ## Manual parameters for the analysis
 cluster_number <- 2
 cluster_number_names <- "two"
-lgbm_split <- 0.70
-lgbm_rounds <- 50
-xgboost_rounds <- 50
-optuna_rounds <- 20
-optuna_trials <- 50
+ml_split <- 0.75
+optuna_trials <- 5000
+lgbm_rounds <- 200
+xgboost_rounds <- 200
 ```
 
 ```{r Import & scripts, include=FALSE}

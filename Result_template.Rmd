@@ -118,3 +118,45 @@ t(as.data.frame(xgboost_model$params[c(
 xgboost_importance_plot %>%
   xgb.plot.importance()
 ```
+
+#### Keras
+
+```{r}
+
+```
+
+#### PyTorch Tabular NODE
+
+```{r}
+
+```
+
+## Models comparison
+
+```{r}
+result_list <-
+  lst(
+    results_lgbm = lst(
+      lgbm_best_accuracy,
+      lgbm_kappa,
+      lgbm_f1,
+      lgbm_auc_roc,
+      lgbm_precision,
+      lgbm_recall
+    ),
+    results_xgboost = lst(
+      xgboost_best_accuracy,
+      xgboost_kappa,
+      xgboost_f1,
+      xgboost_auc_roc,
+      xgboost_precision,
+      xgboost_recall
+    )
+  )
+
+do.call(rbind, result_list) %>%
+  `colnames<-`(c("Accuracy", "Kappa", "F1", "AUC-ROC", "Precision", "Recall")) %>%
+  `rownames<-`(c("LGBM", "XGBoost")) %>%
+  my_table()
+```
+
