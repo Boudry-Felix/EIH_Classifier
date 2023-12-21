@@ -22,17 +22,17 @@ def lgbm_tune(trial):
       'objective': 'binary',
       'metric': 'binary_logloss',
       'verbosity': -1,
-      'learning_rate': trial.suggest_float('learning_rate',0.05, 1),
-      'lambda_l1': trial.suggest_float('lambda_l1', 1e-3, 5.0),
-      'lambda_l2': trial.suggest_float('lambda_l2', 1e-3, 5.0),
-      'num_leaves': trial.suggest_int('num_leaves', 3, 700),
-      'max_depth': trial.suggest_int('max_depth', 5, 80),
+      'learning_rate': trial.suggest_float('learning_rate',0.3, 1),
+      'lambda_l1': trial.suggest_float('lambda_l1', 2, 5.0),
+      'lambda_l2': trial.suggest_float('lambda_l2', 0.5, 3.0),
+      'num_leaves': trial.suggest_int('num_leaves', 8, 80),
+      'max_depth': trial.suggest_int('max_depth', 2, 20),
       'feature_fraction': trial.suggest_float('feature_fraction', 0.6, 1.0),
       'bagging_fraction': trial.suggest_float('bagging_fraction', 0.5, 1.0),
       'bagging_freq': trial.suggest_int('bagging_freq', 2, 6),
       'drop_rate': trial.suggest_float('drop_rate', 0.01, 0.7),
-      'reg_alpha': trial.suggest_float('reg_alpha', 0.1, 10),
-      'reg_lambda': trial.suggest_float('reg_lambda', 0.1, 10),
+      'reg_alpha': trial.suggest_float('reg_alpha', 4, 10),
+      'reg_lambda': trial.suggest_float('reg_lambda', 4, 10),
       'is_unbalance':True
     }
 
@@ -40,14 +40,16 @@ def lgbm_tune(trial):
     preds = lgbm.predict(test_x)
     pred_labels = np.rint(preds)
     accuracy = sm.accuracy_score(test_y, pred_labels)
-    return accuracy
+    kappa = sm.cohen_kappa_score(test_y, pred_labels)
+    f1 = sm.f1_score(test_y, pred_labels, pos_label = 1)
+    return accuracy, kappa, f1
 
-study_lgbm = optuna.create_study(direction='maximize', sampler = sampler)
+study_lgbm = optuna.create_study(directions=['maximize', 'maximize', 'maximize'], sampler = sampler)
 optuna.logging.set_verbosity(optuna.logging.CRITICAL)
 study_lgbm.optimize(lgbm_tune, n_trials=int(r.optuna_trials), show_progress_bar=True)
 
-lgbm_best_params = study_lgbm.best_params
-lgbm_best_accuracy = study_lgbm.best_value
+lgbm_best_params = max(study_lgbm.best_trials, key=lambda t: t.values[1]).params
+lgbm_best_accuracy = max(study_lgbm.best_trials, key=lambda t: t.values[1]).values
 lgbm_model = lgb.LGBMClassifier(**lgbm_best_params, n_estimators=int(r.lgbm_rounds))
 lgbm_model.fit(train_x, train_y)
 
@@ -60,15 +62,12 @@ lgbm_auc_roc = sm.roc_auc_score(test_y, lgbm_pred_y)
 lgbm_precision = sm.precision_score(test_y, lgbm_pred_y)
 lgbm_recall = sm.recall_score(test_y, lgbm_pred_y)
 
-# lgbm_precision_recall = sm.precision_recall_curve(test_y, lgbm_pred_y)
-# lgbm_roc = sm.roc_curve(test_y, lgbm_pred_y)
-
 lgbm_model.booster_.save_model("lgbm_model.txt")
 
 # XGBoost model
 def xgboost_tune(trial):
     params = {
-      'max_depth': trial.suggest_int('max_depth', 1, 9),
+      'max_depth': trial.suggest_int('max_depth', 1, 20),
       'learning_rate': trial.suggest_float('learning_rate', 0.01, 1.0),
       'n_estimators': trial.suggest_int('n_estimators', 50, 500),
       'min_child_weight': trial.suggest_int('min_child_weight', 1, 10),
@@ -94,7 +93,6 @@ xgboost_best_params = study_xgboost.best_params
 xgboost_best_accuracy = study_xgboost.best_value
 xgboost_model = xgb.XGBClassifier(eval_metric="mlogloss", n_estimator=int(r.xgboost_rounds))
 xgboost_model.fit(train_x, train_y)
-
 feature_names = xgboost_model.get_booster().feature_names
 
 xgboost_pred_y = xgboost_model.predict(test_x)

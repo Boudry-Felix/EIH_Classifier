@@ -8,72 +8,41 @@
 # Libraries ---------------------------------------------------------------
 require(magrittr)
 
-# Import and transform ----------------------------------------------------
+# Import ------------------------------------------------------------------
 summary_gen <- function() {
-  imported_data <-
+  imported_data <- # Import all data and it's informations
     project_import(project_path = easycsv::choose_dir())
 
-  infos <- imported_data$infos
-  my_data <- imported_data$data %>%
-    common_col()
+  summary_abs <- imported_data$data %>%
+    common_col() # Keeping only common columns
 
   # Compute ratios
-  my_data <- lapply(my_data, \(x) {
+  summary_abs <- lapply(summary_abs, \(x) {
     x <- cbind(x, `ve/vo2` = x$ve / x$vo2) %>%
       cbind(`ve/vco2` = x$ve / x$vco2) %>%
       cbind(`vco2/vo2` = x$vco2 / x$vo2) %>%
-      cbind(`vo2/fc` = x$vo2 / x$fc)
+      cbind(`vo2/hr` = x$vo2 / x$hr)
     return(x)
   })
 
-  my_colnames <- colnames(my_data[[1]])
-
-  summary_simple <-
-    my_summary(my_data, my_data) %>% missRanger::missRanger()
-  summary_relative <-
-    compute_relative(summary_simple, cols = c("vo2")) %>%
-    missRanger::missRanger()
-
-  colnames(summary_relative) <-
-    paste0(colnames(summary_relative), "_rel")
-
-  summary_full <-
-    merge(
-      summary_simple,
-      summary_relative,
-      by.x = "subject",
-      by.y = "subject_rel",
-      all.x = TRUE
-    )
-
-  keeped_rows <- summary_full %>%
-    as.data.frame() %>%
-    dplyr::select_if(is.numeric) %>%
-    na.omit() %>%
-    rownames()
-
-  my_summaries <-
-    dplyr::lst(summary_simple, summary_relative, summary_full) %>%
-    `names<-`(value = c("absolute", "relative", "full"))
-
-  # Labeling
-  encoded_summaries <- lapply(X = my_summaries, FUN = df_encode)
+  summary_abs <-
+    my_summary(summary_abs, summary_abs, infos_df = imported_data$infos)
 
   dir.create(path = "Data")
-  rio::export_list(x = my_summaries, file = "Data/summary_%s.csv")
+  write.csv(x = summary_abs, file = "Data/summary.csv")
 }
 
 project_import <- function(project_path) {
   imported_data <- dplyr::lst() # Create a list for data
   imported_data_infos <-
     data.table::data.table() # Create a table for informations about samples
-  studies_list <-
+  studies_list <- # Lists the folders corresponding to projects
     fs::dir_info(path = paste(project_path), recurse = FALSE) %>%
     dplyr::filter(type == "directory") %$%
     path
 
   for (my_study in studies_list) {
-    information_files_list <-
+    information_files_list <- # List informations files
       fs::dir_info(path = my_study, recurse = TRUE) %>%
       dplyr::filter(type == "file") %$%
       path %>%
@@ -82,7 +51,7 @@ project_import <- function(project_path) {
            value = TRUE)
 
     subject_informations <-
-      # Import subjects informations and clean column names
+      # Get subjects informations and clean column names
       data.table::fread(
         file = grep(
           pattern = "Informations_subjects.*",
@@ -92,7 +61,7 @@ project_import <- function(project_path) {
       ) %>%
       janitor::clean_names()
     test_informations <-
-      # Import test informations and clean column names
+      # Get test informations and clean column names
       data.table::fread(file = grep(
         pattern = "Informations_tests.*",
         x = information_files_list,
@@ -100,12 +69,13 @@ project_import <- function(project_path) {
       )) %>%
       janitor::clean_names()
     data_infos <- subject_informations %>% # Merge informations
-      append(x = ., values = test_informations[1, ]) %>%
+      append(x = ., values = test_informations[1,]) %>%
       data.table::as.data.table()
-    files_list <- fs::dir_info(my_study, recurse = TRUE) %>%
+    files_list <-
+      fs::dir_info(my_study, recurse = TRUE) %>% # List all files
       dplyr::filter(type == "file")
     files_list <- files_list$path
-    files_list <-
+    files_list <- # Keeping only xlsx files (data files)
       grep(pattern = ".xlsx",
            x = files_list,
            value = TRUE)
@@ -119,7 +89,6 @@ project_import <- function(project_path) {
         files_list,
         readxl::read_excel,
         .name_repair = "minimal",
-        na = c("", " ", "NA"),
         col_type = "numeric",
         simplify = FALSE,
         USE.NAMES = TRUE
@@ -129,7 +98,7 @@ project_import <- function(project_path) {
     imported_data_infos <-
       rbind(x = imported_data_infos, values = data_infos)
   }
-  names(imported_data) <-
+  names(imported_data) <- # Renaming objects
     gsub(
       pattern = paste0(project_path, ".*/.*/"),
       replacement = "",
@@ -148,19 +117,33 @@ project_import <- function(project_path) {
 }
 
 common_col <- function(df_list) {
-  cleaned_df <- lapply(X = df_list, FUN = colnames) %>%
+  df_list <- lapply(X = df_list, \(x) {
+    input_col <- colnames(x = x)
+    output_col <-
+      stringi::stri_replace_all_regex(
+        str = input_col,
+        pattern = c("Rf|rf|fr|Fr|FR|f_r", "Hr|hr|FC|fc|Fc|f_c"),
+        replacement = c("RF", "HR"),
+        vectorize = FALSE
+      )
+    colnames(x = x) <- output_col
+    x <- janitor::clean_names(x)
+    return(x)
+  })
+  cleaned_df <-
+    lapply(X = df_list, FUN = colnames) %>% # Find columns present in all df
     Reduce(f = intersect) %>%
     lapply(X = df_list, FUN = "[", .)
   return(cleaned_df)
 }
 
-my_summary <- function(df_list, df_names) {
+my_summary <- function(df_list, df_names, infos_df = infos) {
   mapply(
     FUN = function(df_input, name_input)
       dplyr::summarise(
         df_input,
         dplyr::across(
-          # Compute.fns for each column
+          # Compute .fns for each column
           .cols = everything(),
           # Columns to compute
           .fns = list(
@@ -181,52 +164,73 @@ my_summary <- function(df_list, df_names) {
     t() %>%
     as.data.frame() %>%
     tidyr::unnest(cols = colnames(x = .)) %>%
-    merge(y = infos, by = "subject", all = TRUE) %>%
-    dplyr::select(-any_of(
-      c(
-        "train_years",
-        "data_type",
-        "type",
-        "environment",
-        "intensity"
-      )
-    ))
+    merge(y = infos_df, by = "subject", all = TRUE)
 }
 
-compute_relative <- function(input, cols) {
-  maximum_columns <-
-    grep(pattern = cols,
-         x = colnames(x = input),
-         value = TRUE) %>%
-    grep(pattern = "max",
-         x = .,
-         value = TRUE) # List max columns
-  for (my_column in maximum_columns) {
-    study_rel()
+data_read <- function(fun_params = params) {
+  if (fun_params$data != "none") {
+    imported_data_names <<-
+      basename(fun_params$data) %>%
+      file_path_sans_ext()
+    imported_data <<-
+      fun_params$data %>%
+      fread(na.strings = c("NA", "na", "", "Inf", "-Inf")) %>%
+      lst() %>%
+      `names<-`(value = imported_data_names)
+  } else if (fun_params$data_list != "none") {
+    imported_data_names <<-
+      fun_params$data_list %>%
+      get_knit_param() %>%
+      basename() %>%
+      file_path_sans_ext()
+    imported_data <<-
+      lapply(
+        X = fun_params$data_list %>%
+          get_knit_param(),
+        FUN = fread,
+        na.strings = c("NA", "na", "", "Inf", "-Inf")
+      ) %>%
+      `names<-`(value = imported_data_names)
+  } else {
+    imported_data_names <<-
+      fun_params$data_folder %>%
+      list.files() %>%
+      file_path_sans_ext()
+    imported_data <<-
+      list.files(path = fun_params$data_folder,
+                 full.names = TRUE) %>%
+      lapply(fread, na.strings = c("NA", "na", "", "Inf", "-Inf")) %>%
+      `names<-`(value = imported_data_names)
   }
-  out_col <- grep(pattern = cols,
-                  x = colnames(input),
-                  value = TRUE)
-  output <- input[, c("subject", out_col)]
-  return(output)
 }
 
-study_rel <- function() {
-  my_variable_name <- colnames(x = input[my_column]) %>%
-    sub(pattern = "_max", replacement = "") # remove "_max" from column name
-  max_colname <- paste0(my_variable_name, "_max")
-  mean_colname <- paste0(my_variable_name, "_mean")
-  median_colname <- paste0(my_variable_name, "_median")
-  min_colname <- paste0(my_variable_name, "_min")
-  sd_colname <- paste0(my_variable_name, "_sd")
-  input[min_colname] <- # Compute minimum values as %
-    100 * input[min_colname] / input[max_colname]
-  input[mean_colname] <- # Compute mean values as %
-    100 * input[mean_colname] / input[max_colname]
-  input[median_colname] <- # Compute median values as %
-    100 * input[median_colname] / input[max_colname]
-  input[sd_colname] <- # Compute sd values as %
-    100 * input[sd_colname] / input[max_colname]
+# Pre-processing ----------------------------------------------------------
+compute_new_features <- function(input) {
+  vo2_colnames <- grep("^vo2_", colnames(input), value = TRUE)
+  vo2_columns <- # List max columns
+    vo2_colnames %>%
+    lapply(\(x) {
+      assign(x = paste0(x, "_rel"),
+             value = input[[x]] / input[["weight"]])
+    }) %>%
+    as.data.frame() %>%
+    `colnames<-`(value = paste0(vo2_colnames, "_rel"))
+
+  hr_colnames <- grep("^hr_", colnames(input), value = TRUE)
+  hr_columns <- # List max columns
+    hr_colnames %>%
+    lapply(\(x) {
+      hr_theo <- 211 - (0.64 * input[["age"]])
+      assign(x = paste0(x, "_rel"),
+             value = input[[x]] * 100 / hr_theo)
+    }) %>%
+    as.data.frame() %>%
+    `colnames<-`(value = paste0(hr_colnames, "_rel"))
+
+  output <- cbind(input, vo2_columns) %>%
+    cbind(hr_columns)
+
+  return(output)
 }
 
 col_encode <- function(my_col) {
@@ -251,41 +255,38 @@ df_encode <- function(input = my_data, list_names) {
   return(output)
 }
 
-data_read <- function(fun_params = params) {
-  if (fun_params$data != "none") {
-    imported_data_names <<-
-      basename(fun_params$data) %>%
-      file_path_sans_ext()
-    imported_data <<-
-      fun_params$data %>%
-      fread(na.strings = c("NA", "na", "", "Inf")) %>%
-      lst() %>%
-      `names<-`(value = imported_data_names)
-  } else if (fun_params$data_list != "none") {
-    imported_data_names <<-
-      fun_params$data_list %>%
-      get_knit_param() %>%
-      basename() %>%
-      file_path_sans_ext()
-    imported_data <<-
-      lapply(
-        X = fun_params$data_list %>%
-          get_knit_param(),
-        FUN = fread,
-        na.strings = c("NA", "na", "", "Inf")
-      ) %>%
-      `names<-`(value = imported_data_names)
-  } else {
-    imported_data_names <<-
-      fun_params$data_folder %>%
-      list.files() %>%
-      file_path_sans_ext()
-    imported_data <<-
-      list.files(path = fun_params$data_folder,
-                 full.names = TRUE) %>%
-      lapply(fread, na.strings = c("NA", "na", "", "Inf")) %>%
-      `names<-`(value = imported_data_names)
-  }
+gbm_data_partition <- function(input, sep_col, sep_prop) {
+  split_indexes <- # Separate data in two using p
+    caret::createDataPartition(y = input[[sep_col]], p = sep_prop, list = FALSE)
+  train_data <- # Create a train data set
+    input[split_indexes, ]
+  test_data <- # Create a test data set
+    input[-split_indexes, ]
+  return(dplyr::lst(train_data, test_data))
+}
+
+clean_dataset <- function(input) {
+  output <- select(.data = input, -any_of(excluded_variables)) %>%
+    as.data.frame()
+  output[output == 0] <- NA
+  output[output == Inf] <- NA
+  output[output == "-Inf"] <- NA
+  output <-
+    select(.data = output, -nearZeroVar(output, freqCut = 99 / 1)) %>%  # Detects columns without variations
+    dplyr::mutate(dplyr::across(dplyr::where(is.double), ~ tidyr::replace_na(., median(., na.rm =
+                                                                                         TRUE)))) %>%
+    dplyr::mutate(dplyr::across(
+      dplyr::where(is.integer),
+      ~ tidyr::replace_na(., median(., na.rm =
+                                      TRUE) %>% as.integer())
+    ))
+  # Scale data between 0 and 1
+  tmp <- output[, c("eih")]
+  process <- caret::preProcess(output, method = c("range"))
+  output <- stats::predict(process, output)
+  output$eih <- tmp
+
+  return(output)
 }
 
 # Formats -----------------------------------------------------------------
@@ -300,61 +301,6 @@ eval_knit_param <- function(input) {
   # Parse and evaluate text used as parameter to be executed
   output <- parse(text = input) %>%
     eval()
-  return(output)
-}
-
-confusion_export <- function(my_pat) {
-  # Generates a complete confusion matrix with various metrics
-  my_result <-
-    ls(pattern = paste0(my_pat, "_confusion"), envir = my_env) %>%
-    get(envir = my_env)
-  z <- lst()
-  z$table <-
-    my_result$table %>% as.table() %>% my_table(row.names = TRUE, caption = "Confusion matrix")
-  z$overall <-
-    my_result$overall %>% as.matrix() %>% my_table(caption = "Precision metrics")
-  z$class <-
-    my_result$byClass %>% as.matrix() %>% my_table(caption = "Metrics by class")
-  walk(z, print)
-}
-
-confusion_list_export <- function(my_pat) {
-  my_result <-
-    ls(pattern = paste0(my_pat, "_confusion"), envir = my_env) %>%
-    get(envir = my_env) %>%
-    lapply(FUN = \(x) {
-      z <- lst()
-      z$table <-
-        x$table %>% as.table() %>% my_table(row.names = TRUE, caption = "Confusion matrix")
-      z$overall <-
-        x$overall %>% as.matrix() %>% my_table(caption = "Precision metrics")
-      z$class <-
-        x$byClass %>% as.matrix() %>% my_table(caption = "Metrics by class")
-      return(z)
-    })
-  for (confusion_result in my_result) {
-    walk(confusion_result, print)
-  }
-}
-
-# Compute -----------------------------------------------------------------
-gbm_data_partition <- function(input, sep_col, sep_prop) {
-  split_indexes <- # Separate data in two using p
-    caret::createDataPartition(y = input[[sep_col]], p = sep_prop, list = FALSE)
-  train_data <- # Create a train data set
-    input[split_indexes,]
-  test_data <- # Create a test data set
-    input[-split_indexes,]
-  return(dplyr::lst(train_data, test_data))
-}
-
-clean_dataset <- function(input) {
-  output <- select(.data = input, -any_of(excluded_variables)) %>%
-    # scale(x = .) %>%
-    as.data.frame()
-  output[output == 0] <- NA
-  output[output == Inf] <- NA
-  output <- select(.data = output, -nearZeroVar(output, freqCut = 99/1))
   return(output)
 }
 
@@ -402,7 +348,7 @@ lgb.plot.tree <- function(model = NULL,
     stop("tree: has to be less than the number of trees in the model")
   }
   # filter dt to just the rows for the selected tree
-  dt <- dt[tree_index == tree, ]
+  dt <- dt[tree_index == tree,]
   # change the column names to shorter more diagram friendly versions
   data.table::setnames(
     dt,
@@ -427,7 +373,7 @@ lgb.plot.tree <- function(model = NULL,
   dt[, parent := node_parent][is.na(parent), parent := leaf_parent]
   dt[, c('node_parent', 'leaf_parent', 'split_index') := NULL]
   dt[, Yes := dt$ID[match(dt$Node, dt$parent)]]
-  dt <- dt[nrow(dt):1, ]
+  dt <- dt[nrow(dt):1,]
   dt[, No := dt$ID[match(dt$Node, dt$parent)]]
   # which way do the NA's go (this path will get a thicker arrow)
   # for categorical features, NA gets put into the zero group
@@ -549,9 +495,7 @@ result_save <- function() {
 }
 
 lgbm_export <-
-  function(#study,
-    # name_seq,
-    lgbm_model_results) {
+  function(lgbm_model_results) {
     saveRDS(
       object = lgbm_model_results,
       file = paste0("Output/",
@@ -562,25 +506,27 @@ lgbm_export <-
     if (exists("study_lgbm", envir = compute_env)) {
       saveRDS(
         object = as.list(compute_env$study_lgbm[["best_params"]]),
-        file = paste0("Output/",
-                      analysis_date,
-                      "/params/lgbm_best_params",
-                      ".rds")
+        file = paste0(
+          "Output/",
+          analysis_date,
+          "/params/lgbm_best_params",
+          ".rds"
+        )
       )
       saveRDS(
         object = compute_env$study_lgbm,
-        file = paste0("Output/",
-                      analysis_date,
-                      "/params/lgbm_optuna_study",
-                      ".rds")
+        file = paste0(
+          "Output/",
+          analysis_date,
+          "/params/lgbm_optuna_study",
+          ".rds"
+        )
       )
     }
   }
 
 xgboost_export <-
-  function(#study,
-    # name_seq,
-    xgboost_model_results) {
+  function(xgboost_model_results) {
     saveRDS(
       object = xgboost_model_results,
       file = paste0("Output/",
@@ -591,17 +537,21 @@ xgboost_export <-
     if (exists("study_xgboost", envir = compute_env)) {
       saveRDS(
         object = as.list(compute_env$study_xgboost[["best_params"]]),
-        file = paste0("Output/",
-                      analysis_date,
-                      "/params/xgboost_best_params",
-                      ".rds")
+        file = paste0(
+          "Output/",
+          analysis_date,
+          "/params/xgboost_best_params",
+          ".rds"
+        )
       )
       saveRDS(
         object = compute_env$study_xgboost,
-        file = paste0("Output/",
-                      analysis_date,
-                      "/params/xgboost_optuna_study",
-                      ".rds")
+        file = paste0(
+          "Output/",
+          analysis_date,
+          "/params/xgboost_optuna_study",
+          ".rds"
+        )
       )
     }
   }

@@ -76,6 +76,8 @@ lgbm_model_results <-
 
 # XGBoost analysis --------------------------------------------------------
 xgboost_model <- xgb.load("xgboost_model.txt")
+xgboost_model$feature_names <- feature_names
+xgboost_train <- data.matrix(select(analysis_data, -"eih"))
 xgboost_test_data_pred <- as.matrix(x = ml_test_data$values)
 
 ## Plotting ---------------------------------------------------------------
@@ -83,9 +85,9 @@ xgboost_test_data_pred <- as.matrix(x = ml_test_data$values)
 xgboost_importance <-
   xgb.importance(model = xgboost_model, feature_names = compute_env$feature_names)
 xgboost_importance_plot <-
-  xgb.plot.importance(importance_matrix = xgboost_importance,
-                      measure = "Gain",
-                      top_n = 10)
+  xgb.ggplot.importance(xgboost_importance, top_n = 10)
+xgboost_summary_plot <-
+  xgb.ggplot.shap.summary(xgboost_train, model = xgboost_model)
 
 xgboost_model_results <-
   lst(xgboost_model,
@@ -94,7 +96,8 @@ xgboost_model_results <-
       xgboost_best_accuracy,
       xgboost_kappa,
       xgboost_f1,
-      xgboost_importance_plot)
+      xgboost_importance_plot,
+      xgboost_summary_plot)
 
 # Export data -------------------------------------------------------------
 # Save environment to avoid recomputing
@@ -102,6 +105,6 @@ dir_create(path = paste0("Output/", analysis_date, "/params/"))
 dir_create(path = paste0("Output/", analysis_date, "/models/"))
 file_move(path = "lgbm_model.txt", new_path = paste0("Output/", analysis_date, "/models/lgbm_model.txt"))
 file_move(path = "xgboost_model.txt", new_path = paste0("Output/", analysis_date, "/models/xgboost_model.txt"))
-lgbm_export(lgbm_model_results = lgbm_model_results)
+# lgbm_export(lgbm_model_results = lgbm_model_results)
 xgboost_export(xgboost_model_results = xgboost_model_results)
 save.image(file = paste0("./Output/", analysis_date, "/supervised.RData"))

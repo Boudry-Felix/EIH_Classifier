@@ -23,7 +23,7 @@ analysis_data <- as.data.frame(analysis_data)
 describe(x = analysis_data[c("age",
                              "height",
                              "weight",
-                             # "train_years",
+                             "train_years",
                              "train_volume",
                              "vo2_max")] , na.rm = T) %>%
   round() %>%
@@ -115,8 +115,8 @@ t(as.data.frame(xgboost_model$params[c(
   "bagging_freq",
   "learning_rate"
 )])) %>% my_table()
-xgboost_importance_plot %>%
-  xgb.plot.importance()
+xgboost_importance_plot
+xgboost_summary_plot
 ```
 
 #### Keras
@@ -128,7 +128,13 @@ xgboost_importance_plot %>%
 #### PyTorch Tabular NODE
 
 ```{r}
-
+node_accuracy
+node_kappa
+node_f1
+node_confusion
+node_auc_roc
+node_precision
+node_recall
 ```
 
 ## Models comparison
@@ -137,7 +143,7 @@ xgboost_importance_plot %>%
 result_list <-
   lst(
     results_lgbm = lst(
-      lgbm_best_accuracy,
+      lgbm_accuracy,
       lgbm_kappa,
       lgbm_f1,
       lgbm_auc_roc,
@@ -151,12 +157,25 @@ result_list <-
       xgboost_auc_roc,
       xgboost_precision,
       xgboost_recall
+    ),
+    results_node = lst(
+      node_accuracy,
+      node_kappa,
+      node_f1,
+      node_auc_roc,
+      node_precision,
+      node_recall
     )
   )
 
 do.call(rbind, result_list) %>%
-  `colnames<-`(c("Accuracy", "Kappa", "F1", "AUC-ROC", "Precision", "Recall")) %>%
-  `rownames<-`(c("LGBM", "XGBoost")) %>%
+  `colnames<-`(c("Accuracy",
+                 "Kappa",
+                 "F1",
+                 "AUC-ROC",
+                 "Precision",
+                 "Recall")) %>%
+  `rownames<-`(c("LGBM", "XGBoost", "NODE")) %>%
   my_table()
 ```
 

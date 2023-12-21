@@ -46,7 +46,7 @@ knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE
 )
-project_seed <- params$seed # runif(n = 1, min = 1, max = 1000)
+project_seed <- params$seed
 set.seed(seed = project_seed)
 
 # Import libraries
@@ -91,7 +91,7 @@ xgboost_rounds <- 200
 ```
 
 ```{r Import & scripts, include=FALSE}
-# Import selected dataset
+# Import selected dataset creating imported_data_names and imported_data
 data_read()
 
 # Create environments (one per dataset, used for results storage)
@@ -107,10 +107,11 @@ my_envs <- lapply(X = imported_data_names, FUN = \(df_name) {
 # Source scripts for analysis
 for (df_name in imported_data_names) {
   analysis_data <- imported_data[[df_name]] %>%
+    compute_new_features() %>% 
     df_encode() %$%
     encoded_data %>%
     clean_dataset() %>% 
-    missRanger()
+    round(digits = 4)
   compute_env <- my_envs[[df_name]]
   source("./Scripts/Unsupervised.R", local = compute_env)
   source("./Scripts/Supervised.R", local = compute_env)
