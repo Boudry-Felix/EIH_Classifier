@@ -74,8 +74,8 @@ a classification and the correct the classification process and criteria.
 #### LightGBM
 
 ```{r}
-lgbm_accuracy
 lgbm_best_accuracy
+lgbm_accuracy
 lgbm_best_params
 lgbm_confusion
 t(as.data.frame(lgbm_model$params[c(
@@ -143,7 +143,7 @@ node_recall
 result_list <-
   lst(
     results_lgbm = lst(
-      lgbm_accuracy,
+      lgbm_best_accuracy,
       lgbm_kappa,
       lgbm_f1,
       lgbm_auc_roc,

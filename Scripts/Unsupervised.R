@@ -9,7 +9,6 @@
 # List of used libraries.
 require(tidyverse)
 require(factoextra)
-require(dbscan)
 require(clusplus)
 require(magrittr)
 require(missRanger)

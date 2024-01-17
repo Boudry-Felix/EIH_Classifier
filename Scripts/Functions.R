@@ -26,7 +26,8 @@ summary_gen <- function() {
   })
 
   summary_abs <-
-    my_summary(summary_abs, summary_abs, infos_df = imported_data$infos)
+    my_summary(summary_abs, summary_abs, infos_df = imported_data$infos) %>%
+    compute_new_features()
 
   dir.create(path = "Data")
   write.csv(x = summary_abs, file = "Data/summary.csv")
@@ -152,7 +153,9 @@ my_summary <- function(df_list, df_names, infos_df = infos) {
             max = \(x) base::max(x = x, na.rm = TRUE),
             min = \(x) base::min(x = x, na.rm = TRUE),
             median = \(x) stats::median(x = x, na.rm = TRUE),
-            sd = \(x) stats::sd(x = x, na.rm = TRUE)
+            sd = \(x) stats::sd(x = x, na.rm = TRUE),
+            va =  \(x) stats::var(x = x, na.rm = TRUE),
+            rms = \(x) base::sqrt(base::mean(x = x, na.rm = TRUE))
           ),
           .names = "{.col}_{.fn}"
         )
@@ -248,7 +251,7 @@ df_encode <- function(input = my_data, list_names) {
   # Encode (labeling) entire data frames
   encoded_data <- lapply(X = input,
                          FUN = col_encode) %>% as.data.frame()
-  output <- dplyr::lst(convert_dic, encoded_data)
+  output <- dplyr::lst(encoded_data)
   if (!missing(x = list_names)) {
     names(output) <- list_names
   }

@@ -41,6 +41,8 @@ Data
 *.log
 *.tex
 *.txt
+*.csv
+*.ckpt
 Data_raw
 figure
 EIH_Modeling_Classification_files

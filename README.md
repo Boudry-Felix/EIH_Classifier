@@ -63,7 +63,7 @@ pertinent analysis.
 - Optuna rounds
 - FLAML time budget
 
-(Some may have been forgotten, those are the most importants.)
+(Some may have been forgotten, those are the most important ones.)
 
 ## Data
 

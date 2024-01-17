@@ -14,7 +14,7 @@ output:
 params:
   seed:
     label: "Seed:"
-    value: 42
+    value: 256
     input: numeric
   data:
     label: "Input dataset:"
@@ -54,8 +54,7 @@ source("./Scripts/Functions.R")
 library(data.table)
 library(tidyverse)
 library(factoextra)
-library(dbscan)
-library(clusplus)
+library(clusplus) # https://github.com/pablo14/clusplus
 library(caret)
 library(gbm)
 library(lightgbm)
@@ -84,10 +83,10 @@ predict_label <-
 ## Manual parameters for the analysis
 cluster_number <- 2
 cluster_number_names <- "two"
-ml_split <- 0.75
-optuna_trials <- 5000
-lgbm_rounds <- 200
-xgboost_rounds <- 200
+ml_split <- 0.8
+optuna_trials <- 3000
+lgbm_rounds <- 150
+xgboost_rounds <- 120
 ```
 
 ```{r Import & scripts, include=FALSE}
@@ -107,7 +106,6 @@ my_envs <- lapply(X = imported_data_names, FUN = \(df_name) {
 # Source scripts for analysis
 for (df_name in imported_data_names) {
   analysis_data <- imported_data[[df_name]] %>%
-    compute_new_features() %>% 
     df_encode() %$%
     encoded_data %>%
     clean_dataset() %>% 
