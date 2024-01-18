@@ -40,17 +40,12 @@ def lgbm_tune(trial):
     preds = lgbm.predict(test_x)
     pred_labels = np.rint(preds)
     accuracy = sm.accuracy_score(test_y, pred_labels)
-    # kappa = sm.cohen_kappa_score(test_y, pred_labels)
-    # f1 = sm.f1_score(test_y, pred_labels, pos_label = 1)
-    return accuracy#, kappa, f1
+    return accuracy
 
-# study_lgbm = optuna.create_study(directions=['maximize', 'maximize', 'maximize'], sampler = sampler)
 study_lgbm = optuna.create_study(direction='maximize', sampler = sampler)
 optuna.logging.set_verbosity(optuna.logging.CRITICAL)
 study_lgbm.optimize(lgbm_tune, n_trials=int(r.optuna_trials), show_progress_bar=True)
 
-lgbm_best_params = max(study_lgbm.best_trials, key=lambda t: t.values[1]).params
-lgbm_best_accuracy = max(study_lgbm.best_trials, key=lambda t: t.values[1]).values
 lgbm_best_params = study_lgbm.best_params
 lgbm_best_accuracy = study_lgbm.best_value
 lgbm_model = lgb.LGBMClassifier(**lgbm_best_params, n_estimators=int(r.lgbm_rounds))

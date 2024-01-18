@@ -13,7 +13,6 @@ require(clusplus)
 require(magrittr)
 require(missRanger)
 require(caret)
-require(fossil)
 
 # Clustering --------------------------------------------------------------
 # Compute and plot clusters
@@ -132,7 +131,3 @@ cluster_boxplots <- lapply(
     USE.NAMES = TRUE
   )
 ) %>% `names<-`(value = cluster_columns)
-
-# Export data -------------------------------------------------------------
-# Save environment to avoid recomputing
-save.image(file = paste0("./Output/", analysis_date, "/unsupervised.RData"))

@@ -41,6 +41,7 @@ ml_test_data <-
 ml_train_data <<- ml_train_data
 ml_test_data <<- ml_test_data
 
+# Source python scripts
 source_python("./Scripts/ML.py")
 source_python("./Scripts/DL.py")
 
@@ -107,4 +108,3 @@ file_move(path = "lgbm_model.txt", new_path = paste0("Output/", analysis_date, "
 file_move(path = "xgboost_model.txt", new_path = paste0("Output/", analysis_date, "/models/xgboost_model.txt"))
 # lgbm_export(lgbm_model_results = lgbm_model_results)
 xgboost_export(xgboost_model_results = xgboost_model_results)
-save.image(file = paste0("./Output/", analysis_date, "/supervised.RData"))

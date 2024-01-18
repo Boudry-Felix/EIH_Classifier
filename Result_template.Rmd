@@ -20,12 +20,7 @@ features:
 
 ```{r}
 analysis_data <- as.data.frame(analysis_data)
-describe(x = analysis_data[c("age",
-                             "height",
-                             "weight",
-                             "train_years",
-                             "train_volume",
-                             "vo2_max")] , na.rm = T) %>%
+describe(x = antrop_data, na.rm = T) %>%
   round() %>%
   select(c("mean", "sd", "median", "min", "max")) %>%
   my_table(
