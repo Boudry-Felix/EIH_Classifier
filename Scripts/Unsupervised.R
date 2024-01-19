@@ -11,8 +11,8 @@ require(tidyverse)
 require(factoextra)
 require(clusplus)
 require(magrittr)
-require(missRanger)
 require(caret)
+require(CatEncoders)
 
 # Clustering --------------------------------------------------------------
 # Compute and plot clusters
@@ -46,14 +46,32 @@ hclust_td_data <-
 ## Result metrics ---------------------------------------------------------
 ## Compute confusion matrix to assert accuracy
 kclust_confusion <-
-  confusionMatrix(kclust_data$cluster %>% as.factor(),
-                  analysis_data$eih %>% as.factor())
+  confusionMatrix(
+    kclust_data$cluster %>%
+      inverse.transform(enc = convert_dic$eih) %>%
+      as.factor(),
+    analysis_data$eih %>%
+      inverse.transform(enc = convert_dic$eih) %>%
+      as.factor()
+  )
 hclust_bu_confusion <-
-  confusionMatrix(hclust_bu_data$cluster %>% as.factor(),
-                  analysis_data$eih %>% as.factor())
+  confusionMatrix(
+    hclust_bu_data$cluster %>%
+      inverse.transform(enc = convert_dic$eih) %>%
+      as.factor(),
+    analysis_data$eih %>%
+      inverse.transform(enc = convert_dic$eih) %>%
+      as.factor()
+  )
 hclust_td_confusion <-
-  confusionMatrix(hclust_td_data$cluster %>% as.factor(),
-                  analysis_data$eih %>% as.factor())
+  confusionMatrix(
+    hclust_td_data$cluster %>%
+      inverse.transform(enc = convert_dic$eih) %>%
+      as.factor(),
+    analysis_data$eih %>%
+      inverse.transform(enc = convert_dic$eih) %>%
+      as.factor()
+  )
 
 ## Plotting ---------------------------------------------------------------
 
@@ -66,23 +84,26 @@ kclust_graph <-
     geom = NULL,
     show.clust.cent = FALSE
   ) +
-  geom_point(aes(shape = analysis_data$eih %>% as.factor())) +
+  geom_point(aes(
+    shape = analysis_data$eih %>%
+      inverse.transform(enc = convert_dic$eih)
+  )) +
   ggtitle("K-means clustering for EIH status") +
   labs(shape = "Status")
 kclust_coord <-
   plot_clus_coord(cluster_model = kclust_data, data = cluster_data) +
   ggtitle("K-means feature importance for EIH status") +
-  theme(axis.text.x.bottom = element_text(angle = 45, size = 5))
-my_label_cols <-
-  analysis_data$eih %>%
-  as.factor() %>%
-  as.numeric()
+  theme(
+    axis.text.x.bottom = element_text(angle = 45, size = 5),
+    plot.title = element_text(face = "plain")
+  )
+
 hclust_bu_graph <-
   fviz_dend(
     x = hclust_bu_data,
     cex = 0.5,
-    label_cols = my_label_cols,
-    horiz = TRUE,
+    k_colors = unique(analysis_data$eih),
+    label_cols = analysis_data$eih,
     guides = "none",
     type = "circular"
   ) +
@@ -91,8 +112,8 @@ hclust_td_graph <-
   fviz_dend(
     x = hclust_td_data,
     cex = 0.5,
-    label_cols = my_label_cols,
-    horiz = TRUE,
+    k_colors = unique(analysis_data$eih),
+    label_cols = analysis_data$eih,
     guides = "none",
     type = "circular"
   ) +

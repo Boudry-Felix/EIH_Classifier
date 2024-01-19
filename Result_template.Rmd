@@ -19,7 +19,6 @@ The data used for this part of the work are characterized by the following
 features:
 
 ```{r}
-analysis_data <- as.data.frame(analysis_data)
 describe(x = antrop_data, na.rm = T) %>%
   round() %>%
   select(c("mean", "sd", "median", "min", "max")) %>%
@@ -41,24 +40,40 @@ create a classification. This mainly include clustering algorithms.
 
 #### K-means clustering
 
-```{r}
+```{r fig.align='center'}
 kclust_graph
 kclust_coord
-kclust_confusion
+kclust_confusion$table %>%
+  my_table(caption = "<center><strong>K-means confusion matrix</center></strong>", row.names = TRUE) %>%
+  kableExtra::column_spec(1, bold = TRUE)
+kclust_confusion$overall %>%
+  my_table(caption = "<center><strong>Overall metrics</center></strong>", col.names = NULL)
+kclust_confusion$byClass %>%
+  my_table(caption = "<center><strong>Metrics by class</center></strong>", col.names = NULL)
 ```
 
-#### Hierarchical bottom-up clustering
+#### Hierarchical agglomerative clustering
 
-```{r}
+```{r fig.align='center'}
 hclust_bu_graph
-hclust_bu_confusion
+hclust_bu_confusion$table %>%
+  my_table(caption = "<center><strong>HC agglomerative confusion matrix</center></strong>", row.names = TRUE) %>%
+  kableExtra::column_spec(1, bold = TRUE)
+hclust_bu_confusion$overall %>% my_table(caption = "<center><strong>Overall metrics</center></strong>", col.names = NULL)
+hclust_bu_confusion$byClass %>%
+  my_table(caption = "<center><strong>Metrics by class</center></strong>", col.names = NULL)
 ```
 
-#### Hierarchical top-down clustering
+#### Hierarchical divisive clustering
 
-```{r}
+```{r fig.align='center'}
 hclust_td_graph
-hclust_td_confusion
+hclust_td_confusion$table %>%
+  my_table(caption = "<center><strong>HC divisive confusion matrix</center></strong>", row.names = TRUE) %>%
+  kableExtra::column_spec(1, bold = TRUE)
+hclust_td_confusion$overall %>% my_table(caption = "<center><strong>Overall metrics</center></strong>", col.names = NULL)
+hclust_td_confusion$byClass %>%
+  my_table(caption = "<center><strong>Metrics by class</center></strong>", col.names = NULL)
 ```
 
 ### Supervised learning
@@ -68,7 +83,7 @@ a classification and the correct the classification process and criteria.
 
 #### LightGBM
 
-```{r}
+```{r fig.align='center'}
 lgbm_best_accuracy
 lgbm_accuracy
 lgbm_best_params
@@ -94,7 +109,7 @@ lgbm_plot %>%
 
 #### XGBoost
 
-```{r}
+```{r fig.align='center'}
 xgboost_accuracy
 xgboost_best_accuracy
 xgboost_best_params
@@ -116,13 +131,13 @@ xgboost_summary_plot
 
 #### Keras
 
-```{r}
+```{r fig.align='center'}
 
 ```
 
 #### PyTorch Tabular NODE
 
-```{r}
+```{r fig.align='center'}
 node_accuracy
 node_kappa
 node_f1
@@ -134,7 +149,7 @@ node_recall
 
 ## Models comparison
 
-```{r}
+```{r fig.align='center'}
 result_list <-
   lst(
     results_lgbm = lst(

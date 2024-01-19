@@ -242,7 +242,7 @@ col_encode <- function(my_col) {
     my_col
   } else {
     label <- CatEncoders::LabelEncoder.fit(y = my_col)
-    convert_dic <<- append(x = convert_dic, values = label)
+    convert_dic <<- append(x = .GlobalEnv$convert_dic, values = label)
     CatEncoders::transform(enc = label, my_col)
   }
 }

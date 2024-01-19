@@ -63,9 +63,9 @@ library(shapviz)
 library(magrittr)
 library(gridExtra)
 library(psych)
-library(missRanger)
 library(fs)
 library(tools)
+library(CatEncoders)
 
 # Create a folder to save results
 analysis_date <- format(Sys.time(), "%Y-%m-%d_%H.%M.%S")
@@ -102,6 +102,9 @@ my_envs <- lapply(X = imported_data_names, FUN = \(df_name) {
 
 # Source scripts for analysis
 for (df_name in imported_data_names) {
+  no_num_colnames <- # Columns that will be encoded
+    dplyr::select_if(imported_data[[df_name]], negate(is.numeric)) %>%
+    colnames()
   antrop_data <- imported_data[[df_name]][, c("age",
                                               "height",
                                               "weight",
@@ -113,6 +116,8 @@ for (df_name in imported_data_names) {
     encoded_data %>%
     clean_dataset() %>%
     round(digits = 4)
+  names(convert_dic) <-
+    no_num_colnames # Naming encoding list elements
   compute_env <- my_envs[[df_name]]
   source("./Scripts/Unsupervised.R", local = compute_env)
   source("./Scripts/Supervised.R", local = compute_env)
