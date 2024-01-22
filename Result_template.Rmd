@@ -15,8 +15,8 @@ knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 
 ### Subjects
 
-The data used for this part of the work are characterized by the following 
-features:
+The data from the data set _**`r paste(my_env$name)`**_ are characterized by the
+following features:
 
 ```{r}
 describe(x = antrop_data, na.rm = T) %>%
@@ -36,7 +36,8 @@ describe(x = antrop_data, na.rm = T) %>%
 ### Unsupervised learning
 
 The unsupervised approach is based on algorithms that don't need labels to
-create a classification. This mainly include clustering algorithms.
+create a classification. This mainly include clustering algorithms such as
+k-means and hierarchical clustering.
 
 #### K-means clustering
 
@@ -78,55 +79,61 @@ hclust_td_confusion$byClass %>%
 
 ### Supervised learning
 
-The supervised approach, compared to the unsupervised one, require labels to try 
-a classification and the correct the classification process and criteria.
+The supervised approach, compared to the unsupervised one, require labels to try
+a classification and the correct the classification process and criteria. In
+this work we used LGBM and XGboost and decision tree based methods and a Dense
+and a NODE model as neural network approaches.
 
 #### LightGBM
 
+The best LGBM model computed by Optuna has a accuracy of 
+**`r optuna_lgbm_best_accuracy`**. The model computed with the best 
+parameters of this trial has the following metrics:
+
 ```{r fig.align='center'}
-lgbm_best_accuracy
-lgbm_accuracy
-lgbm_best_params
-lgbm_confusion
-t(as.data.frame(lgbm_model$params[c(
-  "boosting",
-  "lambda_l1",
-  "lambda_l2",
-  "num_leaves",
-  "max_depth",
-  "feature_fraction",
-  "bagging_fraction",
-  "bagging_freq",
-  "learning_rate"
-)])) %>% my_table()
-lgbm_importance_plot %>%
-  lgb.plot.importance()
-lgbm_importance_plot %>%
-  lgb.plot.interpretation()
-lgbm_plot %>%
+# Confusion tables
+lgbm_confusion$table %>%
+  my_table(caption = "<center><strong>LGBM confusion matrix</center></strong>", row.names = TRUE) %>%
+  kableExtra::column_spec(1, bold = TRUE)
+lgbm_confusion$overall %>% my_table(caption = "<center><strong>Overall metrics</center></strong>", col.names = NULL)
+lgbm_confusion$byClass %>%
+  my_table(caption = "<center><strong>Metrics by class</center></strong>", col.names = NULL)
+
+# LGBM parameters
+lgbm_best_params %>%
+  as.data.frame() %>%
+  t() %>%
+  my_table(caption = "<center><strong>Best Optuna parameters</center></strong>")
+
+# SHAP plots
+lgbm_shap_plot %>%
   walk(print)
 ```
 
 #### XGBoost
 
+The best XGboost model computed by Optuna has a accuracy of 
+**`r optuna_xgb_best_accuracy`**. The model computed with the best parameters of
+this trial has the following metrics:
+
 ```{r fig.align='center'}
-xgboost_accuracy
-xgboost_best_accuracy
-xgboost_best_params
-xgboost_confusion
-t(as.data.frame(xgboost_model$params[c(
-  "boosting",
-  "lambda_l1",
-  "lambda_l2",
-  "num_leaves",
-  "max_depth",
-  "feature_fraction",
-  "bagging_fraction",
-  "bagging_freq",
-  "learning_rate"
-)])) %>% my_table()
-xgboost_importance_plot
-xgboost_summary_plot
+# Confusion tables
+xgboost_confusion$table %>%
+  my_table(caption = "<center><strong>XGBoost confusion matrix</center></strong>", row.names = TRUE) %>%
+  kableExtra::column_spec(1, bold = TRUE)
+xgboost_confusion$overall %>% my_table(caption = "<center><strong>Overall metrics</center></strong>", col.names = NULL)
+xgboost_confusion$byClass %>%
+  my_table(caption = "<center><strong>Metrics by class</center></strong>", col.names = NULL)
+
+# XGBoost parameters
+xgboost_best_params %>%
+  as.data.frame() %>%
+  t() %>%
+  my_table(caption = "<center><strong>Best Optuna parameters</center></strong>")
+
+# SHAP plots
+xgboost_shap_plot %>%
+  walk(print)
 ```
 
 #### Keras
@@ -153,7 +160,7 @@ node_recall
 result_list <-
   lst(
     results_lgbm = lst(
-      lgbm_best_accuracy,
+      lgbm_accuracy,
       lgbm_kappa,
       lgbm_f1,
       lgbm_auc_roc,
@@ -161,7 +168,7 @@ result_list <-
       lgbm_recall
     ),
     results_xgboost = lst(
-      xgboost_best_accuracy,
+      xgboost_accuracy,
       xgboost_kappa,
       xgboost_f1,
       xgboost_auc_roc,

@@ -70,7 +70,7 @@ project_import <- function(project_path) {
       )) %>%
       janitor::clean_names()
     data_infos <- subject_informations %>% # Merge informations
-      append(x = ., values = test_informations[1,]) %>%
+      append(x = ., values = test_informations[1, ]) %>%
       data.table::as.data.table()
     files_list <-
       fs::dir_info(my_study, recurse = TRUE) %>% # List all files
@@ -242,7 +242,8 @@ col_encode <- function(my_col) {
     my_col
   } else {
     label <- CatEncoders::LabelEncoder.fit(y = my_col)
-    convert_dic <<- append(x = .GlobalEnv$convert_dic, values = label)
+    convert_dic <<-
+      append(x = .GlobalEnv$convert_dic, values = label)
     CatEncoders::transform(enc = label, my_col)
   }
 }
@@ -262,9 +263,9 @@ gbm_data_partition <- function(input, sep_col, sep_prop) {
   split_indexes <- # Separate data in two using p
     caret::createDataPartition(y = input[[sep_col]], p = sep_prop, list = FALSE)
   train_data <- # Create a train data set
-    input[split_indexes, ]
+    input[split_indexes,]
   test_data <- # Create a test data set
-    input[-split_indexes, ]
+    input[-split_indexes,]
   return(dplyr::lst(train_data, test_data))
 }
 
@@ -351,7 +352,7 @@ lgb.plot.tree <- function(model = NULL,
     stop("tree: has to be less than the number of trees in the model")
   }
   # filter dt to just the rows for the selected tree
-  dt <- dt[tree_index == tree,]
+  dt <- dt[tree_index == tree, ]
   # change the column names to shorter more diagram friendly versions
   data.table::setnames(
     dt,
@@ -376,7 +377,7 @@ lgb.plot.tree <- function(model = NULL,
   dt[, parent := node_parent][is.na(parent), parent := leaf_parent]
   dt[, c('node_parent', 'leaf_parent', 'split_index') := NULL]
   dt[, Yes := dt$ID[match(dt$Node, dt$parent)]]
-  dt <- dt[nrow(dt):1,]
+  dt <- dt[nrow(dt):1, ]
   dt[, No := dt$ID[match(dt$Node, dt$parent)]]
   # which way do the NA's go (this path will get a thicker arrow)
   # for categorical features, NA gets put into the zero group
@@ -474,19 +475,25 @@ lgb.plot.tree <- function(model = NULL,
   DiagrammeR::render_graph(graph)
 }
 
-lgbm_plots <- function(lgbm_model, lgbm_test_data_pred) {
+shap_plots <- function(model, test_data_pred) {
   shap_data <-
-    shapviz::shapviz(object = lgbm_model, X_pred = lgbm_test_data_pred)
+    shapviz::shapviz(object = model, X_pred = test_data_pred)
 
-  WF <-
-    shapviz::sv_waterfall(shap_data, row_id = 1) +
+  importance_plot <-
+    shapviz::sv_importance(object = shap_data,
+                           kind = "bar",
+                           max_display = 5) +
+    ggtitle("Importance plot of the 5 most important features")
+  waterfall_plot <-
+    shapviz::sv_waterfall(object = shap_data, row_id = 1) +
     ggtitle("Waterfall plot of used features")
-  SF <- shapviz::sv_force(shap_data) +
+  force_plot <- shapviz::sv_force(object = shap_data) +
     ggtitle("Force plot of used features")
-  SI <- shapviz::sv_importance(shap_data, kind = "beeswarm") +
+  beeswarm_plot <-
+    shapviz::sv_importance(object = shap_data, kind = "beeswarm") +
     ggtitle("Beeswarm plot of used features")
 
-  return(dplyr::lst(WF, SF, SI))
+  return(dplyr::lst(importance_plot, waterfall_plot, force_plot, beeswarm_plot))
 }
 
 # Export ------------------------------------------------------------------

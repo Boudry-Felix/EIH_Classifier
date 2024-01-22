@@ -85,7 +85,7 @@ kclust_graph <-
     show.clust.cent = FALSE
   ) +
   geom_point(aes(
-    shape = analysis_data$eih %>%
+    shape = (analysis_data$eih + 1) %>%
       inverse.transform(enc = convert_dic$eih)
   )) +
   ggtitle("K-means clustering for EIH status") +
