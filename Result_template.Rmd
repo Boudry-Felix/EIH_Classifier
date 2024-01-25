@@ -139,19 +139,37 @@ xgboost_shap_plot %>%
 #### Keras
 
 ```{r fig.align='center'}
-
+# Confusion tables
+dense_confusion$table %>%
+  my_table(caption = "<center><strong>Dense NN confusion matrix</center></strong>", row.names = TRUE) %>%
+  kableExtra::column_spec(1, bold = TRUE)
+dense_confusion$overall %>% my_table(caption = "<center><strong>Overall metrics</center></strong>", col.names = NULL)
+dense_confusion$byClass %>%
+  my_table(caption = "<center><strong>Metrics by class</center></strong>", col.names = NULL)
 ```
 
 #### PyTorch Tabular NODE
 
 ```{r fig.align='center'}
-node_accuracy
-node_kappa
-node_f1
-node_confusion
-node_auc_roc
-node_precision
-node_recall
+# Confusion tables
+node_confusion$table %>%
+  my_table(caption = "<center><strong>NODE NN confusion matrix</center></strong>", row.names = TRUE) %>%
+  kableExtra::column_spec(1, bold = TRUE)
+node_confusion$overall %>% my_table(caption = "<center><strong>Overall metrics</center></strong>", col.names = NULL)
+node_confusion$byClass %>%
+  my_table(caption = "<center><strong>Metrics by class</center></strong>", col.names = NULL)
+```
+
+#### PyTorch Tabular GANDALF
+
+```{r fig.align='center'}
+# Confusion tables
+gandalf_confusion$table %>%
+  my_table(caption = "<center><strong>GANDALF NN confusion matrix</center></strong>", row.names = TRUE) %>%
+  kableExtra::column_spec(1, bold = TRUE)
+gandalf_confusion$overall %>% my_table(caption = "<center><strong>Overall metrics</center></strong>", col.names = NULL)
+gandalf_confusion$byClass %>%
+  my_table(caption = "<center><strong>Metrics by class</center></strong>", col.names = NULL)
 ```
 
 ## Models comparison
@@ -160,39 +178,50 @@ node_recall
 result_list <-
   lst(
     results_lgbm = lst(
-      lgbm_accuracy,
-      lgbm_kappa,
-      lgbm_f1,
-      lgbm_auc_roc,
-      lgbm_precision,
-      lgbm_recall
+      lgbm_confusion$overall[["Accuracy"]],
+      lgbm_confusion$overall[["Kappa"]],
+      lgbm_confusion$byClass[["F1"]],
+      lgbm_confusion$byClass[["Precision"]],
+      lgbm_confusion$byClass[["Recall"]]
     ),
     results_xgboost = lst(
-      xgboost_accuracy,
-      xgboost_kappa,
-      xgboost_f1,
-      xgboost_auc_roc,
-      xgboost_precision,
-      xgboost_recall
+      xgboost_confusion$overall[["Accuracy"]],
+      xgboost_confusion$overall[["Kappa"]],
+      xgboost_confusion$byClass[["F1"]],
+      xgboost_confusion$byClass[["Precision"]],
+      xgboost_confusion$byClass[["Recall"]]
     ),
+    # results_dense = lst(
+    #   dense_confusion$overall[["Accuracy"]],
+    #   dense_confusion$overall[["Kappa"]],
+    #   dense_confusion$byClass[["F1"]],
+    #   dense_confusion$byClass[["Precision"]],
+    #   dense_confusion$byClass[["Recall"]]
+    # ),
     results_node = lst(
-      node_accuracy,
-      node_kappa,
-      node_f1,
-      node_auc_roc,
-      node_precision,
-      node_recall
+      node_confusion$overall[["Accuracy"]],
+      node_confusion$overall[["Kappa"]],
+      node_confusion$byClass[["F1"]],
+      node_confusion$byClass[["Precision"]],
+      node_confusion$byClass[["Recall"]]
+    ),
+    results_gandalf = lst(
+      gandalf_confusion$overall[["Accuracy"]],
+      gandalf_confusion$overall[["Kappa"]],
+      gandalf_confusion$byClass[["F1"]],
+      gandalf_confusion$byClass[["Precision"]],
+      gandalf_confusion$byClass[["Recall"]]
     )
+    
   )
 
 do.call(rbind, result_list) %>%
   `colnames<-`(c("Accuracy",
                  "Kappa",
                  "F1",
-                 "AUC-ROC",
                  "Precision",
                  "Recall")) %>%
-  `rownames<-`(c("LGBM", "XGBoost", "NODE")) %>%
+  `rownames<-`(c("LGBM", "XGBoost", "NODE", "GANDALF")) %>%
   my_table()
 ```
 

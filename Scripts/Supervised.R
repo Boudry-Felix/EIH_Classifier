@@ -23,7 +23,6 @@ ml_data <-
   gbm_data_partition(input = analysis_data,
                      sep_col = "eih",
                      sep_prop = ml_split)
-
 ml_train_data <-
   split.default(x = ml_data$train_data,
                 f = names(ml_data$train_data) == "eih") %>%
@@ -37,6 +36,8 @@ ml_test_data <-
 # Needed to use variables with reticulate
 ml_train_data <<- ml_train_data
 ml_test_data <<- ml_test_data
+dl_train <<- ml_data$train_data
+dl_test <<- ml_data$test_data
 
 # Source python scripts
 source_python("./Scripts/ML.py")
@@ -96,6 +97,42 @@ xgboost_model_results <-
       xgboost_model,
       xgboost_confusion,
       xgboost_shap_plot)
+
+# Dense NN ----------------------------------------------------------------
+# dense_confusion <- confusionMatrix(
+#   factor((dense_pred_y + 1) %>% as.vector() %>%
+#            inverse.transform(enc = .GlobalEnv$convert_dic$eih),
+#          levels = c("EIH", "NEIH")
+#   ),
+#   factor((dl_test$eih + 1) %>% as.vector() %>%
+#            inverse.transform(enc = .GlobalEnv$convert_dic$eih),
+#          levels = c("EIH", "NEIH")
+#   )
+# )
+
+# NODE NN -----------------------------------------------------------------
+node_confusion <- confusionMatrix(
+  factor((node_pred_y + 1) %>% as.vector() %>%
+           inverse.transform(enc = .GlobalEnv$convert_dic$eih),
+         levels = c("EIH", "NEIH")
+  ),
+  factor((dl_test$eih + 1) %>% as.vector() %>%
+           inverse.transform(enc = .GlobalEnv$convert_dic$eih),
+         levels = c("EIH", "NEIH")
+  )
+)
+
+# Gandalf NN --------------------------------------------------------------
+gandalf_confusion <- confusionMatrix(
+  factor((gandalf_pred_y + 1) %>% as.vector() %>%
+           inverse.transform(enc = .GlobalEnv$convert_dic$eih),
+         levels = c("EIH", "NEIH")
+  ),
+  factor((dl_test$eih + 1) %>% as.vector() %>%
+           inverse.transform(enc = .GlobalEnv$convert_dic$eih),
+         levels = c("EIH", "NEIH")
+  )
+)
 
 # Export data -------------------------------------------------------------
 # Save environment to avoid recomputing

@@ -499,9 +499,25 @@ shap_plots <- function(model, test_data_pred) {
 # Export ------------------------------------------------------------------
 # Export data functions
 result_save <- function() {
-  dir_copy(path = "./EIH_Modeling_Classification_files/figure-html/",
-           new_path = paste0("Output/", analysis_date))
+  # Save results and clean base directory
+  ## Savings
+  fs::dir_copy(path = "./EIH_Modeling_Classification_files/figure-html/",
+               new_path = paste0("Output/", analysis_date))
+  file.rename(
+    from = "EIH_Modeling_Classification.md",
+    to = paste0(
+      "./Output/",
+      analysis_date,
+      "/EIH_Modeling_Classification.md"
+    )
+  )
   save.image(file = paste0("./Output/", analysis_date, "/global.RData"))
+
+  ## CLeaning
+  file.remove(c(
+    "lgbm_model.txt",
+    "xgboost_model.txt"
+  ))
 }
 
 lgbm_export <-
