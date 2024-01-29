@@ -11,11 +11,9 @@ sampler = optuna.samplers.TPESampler(seed=int(r.project_seed))
 
 # Data import
 train_x = pd.DataFrame(r.ml_train_data["values"])
-train_y = np.array(r.ml_train_data["label"])
-train_y = train_y.ravel()
+train_y = np.array(r.ml_train_data["label"]).ravel()
 test_x = pd.DataFrame(r.ml_test_data["values"])
-test_y = np.array(r.ml_test_data["label"])
-test_y = test_y.ravel()
+test_y = np.array(r.ml_test_data["label"]).ravel()
 dtrain = lgb.Dataset(train_x, label=train_y)
 
 # LGBM model

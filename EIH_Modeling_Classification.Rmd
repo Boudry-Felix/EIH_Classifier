@@ -46,6 +46,7 @@ knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE
 )
+reticulate::use_condaenv("EIH", required = TRUE)
 project_seed <- params$seed
 set.seed(seed = project_seed)
 

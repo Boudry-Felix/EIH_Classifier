@@ -99,16 +99,16 @@ xgboost_model_results <-
       xgboost_shap_plot)
 
 # Dense NN ----------------------------------------------------------------
-# dense_confusion <- confusionMatrix(
-#   factor((dense_pred_y + 1) %>% as.vector() %>%
-#            inverse.transform(enc = .GlobalEnv$convert_dic$eih),
-#          levels = c("EIH", "NEIH")
-#   ),
-#   factor((dl_test$eih + 1) %>% as.vector() %>%
-#            inverse.transform(enc = .GlobalEnv$convert_dic$eih),
-#          levels = c("EIH", "NEIH")
-#   )
-# )
+dense_confusion <- confusionMatrix(
+  factor((dense_pred_y + 1) %>% as.vector() %>%
+           inverse.transform(enc = .GlobalEnv$convert_dic$eih),
+         levels = c("EIH", "NEIH")
+  ),
+  factor((dl_test$eih + 1) %>% as.vector() %>%
+           inverse.transform(enc = .GlobalEnv$convert_dic$eih),
+         levels = c("EIH", "NEIH")
+  )
+)
 
 # NODE NN -----------------------------------------------------------------
 node_confusion <- confusionMatrix(
@@ -122,9 +122,21 @@ node_confusion <- confusionMatrix(
   )
 )
 
-# Gandalf NN --------------------------------------------------------------
+# GANDALF NN --------------------------------------------------------------
 gandalf_confusion <- confusionMatrix(
   factor((gandalf_pred_y + 1) %>% as.vector() %>%
+           inverse.transform(enc = .GlobalEnv$convert_dic$eih),
+         levels = c("EIH", "NEIH")
+  ),
+  factor((dl_test$eih + 1) %>% as.vector() %>%
+           inverse.transform(enc = .GlobalEnv$convert_dic$eih),
+         levels = c("EIH", "NEIH")
+  )
+)
+
+# DANET NN --------------------------------------------------------------
+danet_confusion <- confusionMatrix(
+  factor((danet_pred_y + 1) %>% as.vector() %>%
            inverse.transform(enc = .GlobalEnv$convert_dic$eih),
          levels = c("EIH", "NEIH")
   ),
