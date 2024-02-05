@@ -1,6 +1,6 @@
 Version: 1.0
 
-RestoreWorkspace: Default
+RestoreWorkspace: No
 SaveWorkspace: No
 AlwaysSaveHistory: Default
 
@@ -16,5 +16,5 @@ AutoAppendNewline: Yes
 StripTrailingWhitespace: Yes
 
 PythonType: conda
-PythonVersion: 3.11.4
-PythonPath: ~/.conda/envs/EIH/bin/python3.11
+PythonVersion: 3.10.13
+PythonPath: ~/micromamba/envs/EIH/bin/python

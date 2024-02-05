@@ -1,0 +1,246 @@
+---
+title: "Result_template"
+author: "Félix Boudry"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
+
+# `r paste(my_env$name)`
+
+## Material and methods
+
+### Subjects
+
+The data from the data set _**`r paste(my_env$name)`**_ are characterized by the
+following features:
+
+```{r}
+describe(x = antrop_data, na.rm = T) %>%
+  round() %>%
+  select(c("mean", "sd", "median", "min", "max")) %>%
+  my_table(
+    caption = paste0(
+      "<center><strong>Anthropological values (n = ",
+      nrow(analysis_data) ,
+      ")</center></strong>"
+    )
+  )
+```
+
+## Results
+
+### Unsupervised learning
+
+The unsupervised approach is based on algorithms that don't need labels to
+create a classification. This mainly include clustering algorithms such as
+k-means and hierarchical clustering.
+
+#### K-means clustering
+
+```{r fig.align='center'}
+kclust_graph
+kclust_coord
+kclust_confusion$table %>%
+  my_table(caption = "<center><strong>K-means confusion matrix</center></strong>", row.names = TRUE) %>%
+  kableExtra::column_spec(1, bold = TRUE)
+kclust_confusion$overall %>%
+  my_table(caption = "<center><strong>Overall metrics</center></strong>", col.names = NULL)
+kclust_confusion$byClass %>%
+  my_table(caption = "<center><strong>Metrics by class</center></strong>", col.names = NULL)
+```
+
+#### Hierarchical agglomerative clustering
+
+```{r fig.align='center'}
+hclust_bu_graph
+hclust_bu_confusion$table %>%
+  my_table(caption = "<center><strong>HC agglomerative confusion matrix</center></strong>", row.names = TRUE) %>%
+  kableExtra::column_spec(1, bold = TRUE)
+hclust_bu_confusion$overall %>% my_table(caption = "<center><strong>Overall metrics</center></strong>", col.names = NULL)
+hclust_bu_confusion$byClass %>%
+  my_table(caption = "<center><strong>Metrics by class</center></strong>", col.names = NULL)
+```
+
+#### Hierarchical divisive clustering
+
+```{r fig.align='center'}
+hclust_td_graph
+hclust_td_confusion$table %>%
+  my_table(caption = "<center><strong>HC divisive confusion matrix</center></strong>", row.names = TRUE) %>%
+  kableExtra::column_spec(1, bold = TRUE)
+hclust_td_confusion$overall %>% my_table(caption = "<center><strong>Overall metrics</center></strong>", col.names = NULL)
+hclust_td_confusion$byClass %>%
+  my_table(caption = "<center><strong>Metrics by class</center></strong>", col.names = NULL)
+```
+
+### Supervised learning
+
+The supervised approach, compared to the unsupervised one, require labels to try
+a classification and the correct the classification process and criteria. In
+this work we used LGBM and XGboost and decision tree based methods and a Dense
+and a NODE model as neural network approaches.
+
+#### LightGBM
+
+The best LGBM model computed by Optuna has a accuracy of 
+**`r optuna_lgbm_best_accuracy`**. The model computed with the best 
+parameters of this trial has the following metrics:
+
+```{r fig.align='center'}
+# Confusion tables
+lgbm_confusion$table %>%
+  my_table(caption = "<center><strong>LGBM confusion matrix</center></strong>", row.names = TRUE) %>%
+  kableExtra::column_spec(1, bold = TRUE)
+lgbm_confusion$overall %>% my_table(caption = "<center><strong>Overall metrics</center></strong>", col.names = NULL)
+lgbm_confusion$byClass %>%
+  my_table(caption = "<center><strong>Metrics by class</center></strong>", col.names = NULL)
+
+# LGBM parameters
+lgbm_best_params %>%
+  as.data.frame() %>%
+  t() %>%
+  my_table(caption = "<center><strong>Best Optuna parameters</center></strong>")
+
+# SHAP plots
+lgbm_shap_plot %>%
+  walk(print)
+```
+
+#### XGBoost
+
+The best XGboost model computed by Optuna has a accuracy of 
+**`r optuna_xgb_best_accuracy`**. The model computed with the best parameters of
+this trial has the following metrics:
+
+```{r fig.align='center'}
+# Confusion tables
+xgboost_confusion$table %>%
+  my_table(caption = "<center><strong>XGBoost confusion matrix</center></strong>", row.names = TRUE) %>%
+  kableExtra::column_spec(1, bold = TRUE)
+xgboost_confusion$overall %>% my_table(caption = "<center><strong>Overall metrics</center></strong>", col.names = NULL)
+xgboost_confusion$byClass %>%
+  my_table(caption = "<center><strong>Metrics by class</center></strong>", col.names = NULL)
+
+# XGBoost parameters
+xgboost_best_params %>%
+  as.data.frame() %>%
+  t() %>%
+  my_table(caption = "<center><strong>Best Optuna parameters</center></strong>")
+
+# SHAP plots
+xgboost_shap_plot %>%
+  walk(print)
+```
+
+#### Keras
+
+```{r fig.align='center'}
+# Confusion tables
+dense_confusion$table %>%
+  my_table(caption = "<center><strong>Dense NN confusion matrix</center></strong>", row.names = TRUE) %>%
+  kableExtra::column_spec(1, bold = TRUE)
+dense_confusion$overall %>% my_table(caption = "<center><strong>Overall metrics</center></strong>", col.names = NULL)
+dense_confusion$byClass %>%
+  my_table(caption = "<center><strong>Metrics by class</center></strong>", col.names = NULL)
+```
+
+#### PyTorch Tabular NODE
+
+```{r fig.align='center'}
+# Confusion tables
+node_confusion$table %>%
+  my_table(caption = "<center><strong>NODE NN confusion matrix</center></strong>", row.names = TRUE) %>%
+  kableExtra::column_spec(1, bold = TRUE)
+node_confusion$overall %>% my_table(caption = "<center><strong>Overall metrics</center></strong>", col.names = NULL)
+node_confusion$byClass %>%
+  my_table(caption = "<center><strong>Metrics by class</center></strong>", col.names = NULL)
+```
+
+#### PyTorch Tabular GANDALF
+
+```{r fig.align='center'}
+# Confusion tables
+gandalf_confusion$table %>%
+  my_table(caption = "<center><strong>GANDALF NN confusion matrix</center></strong>", row.names = TRUE) %>%
+  kableExtra::column_spec(1, bold = TRUE)
+gandalf_confusion$overall %>% my_table(caption = "<center><strong>Overall metrics</center></strong>", col.names = NULL)
+gandalf_confusion$byClass %>%
+  my_table(caption = "<center><strong>Metrics by class</center></strong>", col.names = NULL)
+```
+
+#### PyTorch Tabular DANET
+
+```{r fig.align='center'}
+# Confusion tables
+danet_confusion$table %>%
+  my_table(caption = "<center><strong>GANDALF NN confusion matrix</center></strong>", row.names = TRUE) %>%
+  kableExtra::column_spec(1, bold = TRUE)
+danet_confusion$overall %>% my_table(caption = "<center><strong>Overall metrics</center></strong>", col.names = NULL)
+danet_confusion$byClass %>%
+  my_table(caption = "<center><strong>Metrics by class</center></strong>", col.names = NULL)
+```
+
+## Models comparison
+
+```{r fig.align='center'}
+result_list <-
+  lst(
+    results_lgbm = lst(
+      lgbm_confusion$overall[["Accuracy"]],
+      lgbm_confusion$overall[["Kappa"]],
+      lgbm_confusion$byClass[["F1"]],
+      lgbm_confusion$byClass[["Precision"]],
+      lgbm_confusion$byClass[["Recall"]]
+    ),
+    results_xgboost = lst(
+      xgboost_confusion$overall[["Accuracy"]],
+      xgboost_confusion$overall[["Kappa"]],
+      xgboost_confusion$byClass[["F1"]],
+      xgboost_confusion$byClass[["Precision"]],
+      xgboost_confusion$byClass[["Recall"]]
+    ),
+    results_dense = lst(
+      dense_confusion$overall[["Accuracy"]],
+      dense_confusion$overall[["Kappa"]],
+      dense_confusion$byClass[["F1"]],
+      dense_confusion$byClass[["Precision"]],
+      dense_confusion$byClass[["Recall"]]
+    ),
+    results_node = lst(
+      node_confusion$overall[["Accuracy"]],
+      node_confusion$overall[["Kappa"]],
+      node_confusion$byClass[["F1"]],
+      node_confusion$byClass[["Precision"]],
+      node_confusion$byClass[["Recall"]]
+    ),
+    results_gandalf = lst(
+      gandalf_confusion$overall[["Accuracy"]],
+      gandalf_confusion$overall[["Kappa"]],
+      gandalf_confusion$byClass[["F1"]],
+      gandalf_confusion$byClass[["Precision"]],
+      gandalf_confusion$byClass[["Recall"]]
+    ),
+    results_danet = lst(
+      danet_confusion$overall[["Accuracy"]],
+      danet_confusion$overall[["Kappa"]],
+      danet_confusion$byClass[["F1"]],
+      danet_confusion$byClass[["Precision"]],
+      danet_confusion$byClass[["Recall"]]
+    )
+    
+  )
+
+do.call(rbind, result_list) %>%
+  `colnames<-`(c("Accuracy",
+                 "Kappa",
+                 "F1",
+                 "Precision",
+                 "Recall")) %>%
+  `rownames<-`(c("LGBM", "XGBoost", "Dense NN", "NODE", "GANDALF", "DANET")) %>%
+  my_table()
+```
+

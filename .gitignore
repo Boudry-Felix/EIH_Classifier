@@ -32,7 +32,7 @@ vignettes/*.pdf
 Data
 /Output*
 /Environments/*
-/Params/*
+/params/*
 /Images/*
 *.html
 *.pdf
@@ -40,6 +40,13 @@ Data
 *.bib
 *.log
 *.tex
+*.txt
+*.csv
+*.ckpt
 Data_raw
 figure
-
+EIH_Modeling_Classification_files
+EIH_Modeling_Classification.md
+*_models
+*tmp*
+*log*
