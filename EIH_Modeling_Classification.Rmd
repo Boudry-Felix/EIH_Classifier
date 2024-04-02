@@ -12,14 +12,17 @@ output:
     fig_caption: yes
     keep_md: yes
 params:
+  new_models:
+    label: "Compute new models?"
+    value: true
   seed:
     label: "Seed:"
-    value: 256
+    value: 42
     input: numeric
   data:
     label: "Input dataset:"
     value: none
-    input: file
+    input: file   
   data_list:
     label: "List of files to import:"
     value: none
@@ -46,7 +49,6 @@ knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE
 )
-reticulate::use_condaenv("EIH", required = TRUE)
 project_seed <- params$seed
 set.seed(seed = project_seed)
 

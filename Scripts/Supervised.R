@@ -40,12 +40,18 @@ dl_train <<- ml_data$train_data
 dl_test <<- ml_data$test_data
 
 # Source python scripts
-source_python("./Scripts/ML.py")
-source_python("./Scripts/DL.py")
+if (params$new_models) {
+  source_python("./Scripts/ML.py")
+  source_python("./Scripts/DL.py")
+} else {
+  source_python("./Scripts/Model_load.py")
+}
+
 
 # Light GBM analysis ------------------------------------------------------
-lgbm_model <- lgb.load("lgbm_model.txt")
+lgbm_model <- lgb.load("Models/LGBM.txt")
 lgbm_test_data_pred <- as.matrix(x = ml_test_data$values)
+# lgbm_params <- py$lgbm_params
 
 ## Result metrics ---------------------------------------------------------
 ## Compute confusion matrix
@@ -64,16 +70,16 @@ lgbm_shap_plot <-
   shap_plots(model = lgbm_model, test_data_pred = lgbm_test_data_pred)
 
 lgbm_model_results <-
-  lst(optuna_lgbm_best_accuracy,
-      lgbm_model,
+  lst(lgbm_model,
       lgbm_confusion,
       lgbm_shap_plot)
 
 # XGBoost analysis --------------------------------------------------------
-xgboost_model <- xgb.load("xgboost_model.txt")
+xgboost_model <- xgb.load("Models/XGBoost.txt")
 xgboost_model$feature_names <- feature_names
 xgboost_train <- data.matrix(select(analysis_data, -"eih"))
 xgboost_test_data_pred <- as.matrix(x = ml_test_data$values)
+# xgboost_params <- py$xgboost_params
 
 ## Result metrics ---------------------------------------------------------
 ## Compute confusion matrix
@@ -93,8 +99,7 @@ xgboost_shap_plot <-
              test_data_pred = xgboost_test_data_pred)
 
 xgboost_model_results <-
-  lst(optuna_xgb_best_accuracy,
-      xgboost_model,
+  lst(xgboost_model,
       xgboost_confusion,
       xgboost_shap_plot)
 
@@ -150,13 +155,13 @@ danet_confusion <- confusionMatrix(
 # Save environment to avoid recomputing
 dir_create(path = paste0("Output/", analysis_date, "/params/"))
 dir_create(path = paste0("Output/", analysis_date, "/models/"))
-file_move(
-  path = "lgbm_model.txt",
-  new_path = paste0("Output/", analysis_date, "/models/lgbm_model.txt")
+file_copy(
+  path = "Models/LGBM.txt",
+  new_path = paste0("Output/", analysis_date, "/models/LGBM.txt")
 )
-file_move(
-  path = "xgboost_model.txt",
-  new_path = paste0("Output/", analysis_date, "/models/xgboost_model.txt")
+file_copy(
+  path = "Models/XGBoost.txt",
+  new_path = paste0("Output/", analysis_date, "/models/XGBoost.txt")
 )
 lgbm_export(lgbm_model_results = lgbm_model_results)
 xgboost_export(xgboost_model_results = xgboost_model_results)

@@ -29,7 +29,7 @@ train, val = train_test_split(pd.DataFrame(r.dl_train),
 # Keras model
 dense_model = ak.StructuredDataClassifier(
     loss = "mean_squared_error",
-    project_name = "keras_models",
+    project_name = ".keras_models",
     max_trials = 1000,
     objective = "val_loss",
     overwrite = True
@@ -37,11 +37,13 @@ dense_model = ak.StructuredDataClassifier(
 
 np.object = object
 dense_model.fit(train_x, train_y, epochs=100)
+best_keras_model=dense_model.export_model()
+best_keras_model.save("Models/Dense")
 dense_pred_y = dense_model.predict(test_x)
 
 # PyTorch tabular model
 ## General model configuration
-cat_col_names = ['sex', 'activity', 'sport']
+cat_col_names = ['sex', 'sport']
 
 data_config = DataConfig(
   target = ['eih'],
@@ -55,7 +57,7 @@ trainer_config = TrainerConfig(
   max_epochs = 1000,
   accelerator = "cpu",
   early_stopping = None,
-  checkpoints_path = 'pytabular_models'
+  checkpoints_path = '.pytabular_models'
 )
 
 optimizer_config = OptimizerConfig()
@@ -88,6 +90,8 @@ eval_result = node_model.evaluate(val)
 node_pred = node_model.predict(test_x)
 node_pred_y = node_pred['prediction']
 
+node_model.save_model("Models/NODE")
+
 ## GANDALF model
 gandalf_config = GANDALFConfig(
   task = 'classification',
@@ -108,6 +112,8 @@ eval_result = gandalf_model.evaluate(val)
 gandalf_pred = gandalf_model.predict(test_x)
 gandalf_pred_y = gandalf_pred['prediction']
 
+gandalf_model.save_model("Models/GANDALF")
+
 ## DANET model
 danet_config = DANetConfig(
   task = 'classification',
@@ -127,3 +133,5 @@ eval_result = danet_model.evaluate(val)
 
 danet_pred = danet_model.predict(test_x)
 danet_pred_y = danet_pred['prediction']
+
+danet_model.save_model("Models/DANET")

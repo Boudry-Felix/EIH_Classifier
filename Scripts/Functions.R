@@ -13,24 +13,31 @@ summary_gen <- function() {
   imported_data <- # Import all data and it's informations
     project_import(project_path = easycsv::choose_dir())
 
-  summary_abs <- imported_data$data %>%
+  summary <- imported_data$data %>%
     common_col() # Keeping only common columns
 
-  # Compute ratios
-  summary_abs <- lapply(summary_abs, \(x) {
-    x <- cbind(x, `ve/vo2` = x$ve / x$vo2) %>%
-      cbind(`ve/vco2` = x$ve / x$vco2) %>%
-      cbind(`vco2/vo2` = x$vco2 / x$vo2) %>%
-      cbind(`vo2/hr` = x$vo2 / x$hr)
-    return(x)
-  })
-
-  summary_abs <-
-    my_summary(summary_abs, summary_abs, infos_df = imported_data$infos) %>%
+  summary <-
+    my_summary(summary, summary, infos_df = imported_data$infos) %>%
     compute_new_features()
 
+  # Compute ratios
+  for (metric in c("mean", "median", "max", "min", "sd", "var", "rms")) {
+    ve_metric <- paste0("ve_", metric)
+    vo2_metric <- paste0("vo2_", metric)
+    vco2_metric <- paste0("vco2_", metric)
+    hr_metric <- paste0("hr_", metric)
+    summary[[paste0("ve/vo2", "_", metric)]] <-
+      summary[[ve_metric]] / (summary[[vo2_metric]] / 1000)
+    summary[[paste0("ve/vco2", "_", metric)]] <-
+      summary[[ve_metric]] / (summary[[vco2_metric]] / 1000)
+    summary[[paste0("vco2/vo2", "_", metric)]] <-
+      (summary[[vco2_metric]] / 1000) / (summary[[vo2_metric]] / 1000)
+    summary[[paste0("vo2/hr", "_", metric)]] <-
+      summary[[vo2_metric]] / summary[[hr_metric]]
+  }
+
   dir.create(path = "Data")
-  write.csv(x = summary_abs, file = "Data/summary.csv")
+  write.csv(x = summary, file = "Data/summary.csv")
 }
 
 project_import <- function(project_path) {
@@ -154,7 +161,7 @@ my_summary <- function(df_list, df_names, infos_df = infos) {
             min = \(x) base::min(x = x, na.rm = TRUE),
             median = \(x) stats::median(x = x, na.rm = TRUE),
             sd = \(x) stats::sd(x = x, na.rm = TRUE),
-            va =  \(x) stats::var(x = x, na.rm = TRUE),
+            var =  \(x) stats::var(x = x, na.rm = TRUE),
             rms = \(x) base::sqrt(base::mean(x = x, na.rm = TRUE))
           ),
           .names = "{.col}_{.fn}"
@@ -482,16 +489,17 @@ shap_plots <- function(model, test_data_pred) {
   importance_plot <-
     shapviz::sv_importance(object = shap_data,
                            kind = "bar",
-                           max_display = 5) +
-    ggtitle("Importance plot of the 5 most important features")
+                           max_display = 10L)
   waterfall_plot <-
-    shapviz::sv_waterfall(object = shap_data, row_id = 1) +
-    ggtitle("Waterfall plot of used features")
-  force_plot <- shapviz::sv_force(object = shap_data) +
-    ggtitle("Force plot of used features")
+    shapviz::sv_waterfall(object = shap_data,
+                          row_id = 1,
+                          max_display = 10L)
+  force_plot <-
+    shapviz::sv_force(object = shap_data, max_display = 10L)
   beeswarm_plot <-
-    shapviz::sv_importance(object = shap_data, kind = "beeswarm") +
-    ggtitle("Beeswarm plot of used features")
+    shapviz::sv_importance(object = shap_data,
+                           kind = "beeswarm",
+                           max_display = 10L)
 
   return(dplyr::lst(importance_plot, waterfall_plot, force_plot, beeswarm_plot))
 }
@@ -512,12 +520,6 @@ result_save <- function() {
     )
   )
   save.image(file = paste0("./Output/", analysis_date, "/global.RData"))
-
-  ## CLeaning
-  file.remove(c(
-    "lgbm_model.txt",
-    "xgboost_model.txt"
-  ))
 }
 
 lgbm_export <-
