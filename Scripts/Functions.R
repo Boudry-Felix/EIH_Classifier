@@ -509,6 +509,10 @@ shap_plots <- function(model, test_data_pred) {
 result_save <- function() {
   # Save results and clean base directory
   ## Savings
+  fs::dir_copy(path = "Models",
+               new_path = paste0("Output/",
+                                 analysis_date,
+                                 "/Models"))
   fs::dir_copy(path = "./EIH_Modeling_Classification_files/figure-html/",
                new_path = paste0("Output/", analysis_date))
   file.rename(

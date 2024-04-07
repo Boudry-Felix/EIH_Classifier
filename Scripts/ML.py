@@ -65,7 +65,8 @@ lgbm_model.fit(train_x, train_y)
 lgbm_params = lgbm_model.get_params()
 lgbm_pred_y = lgbm_model.predict(test_x)
 
-lgbm_model.booster_.save_model("Models/LGBM.txt")
+model_path = "Models/" + r.env_name + "/LGBM.txt"
+lgbm_model.booster_.save_model(model_path)
 
 # XGBoost model
 ## Optuna search
@@ -116,4 +117,5 @@ xgboost_params = xgboost_model.get_params()
 feature_names = xgboost_model.get_booster().feature_names
 xgboost_pred_y = xgboost_model.predict(test_x)
 
-xgboost_model.save_model("Models/XGBoost.txt")
+model_path = "Models/" + r.env_name + "/XGBoost.txt"
+xgboost_model.save_model(model_path)

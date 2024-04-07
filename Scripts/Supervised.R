@@ -47,9 +47,9 @@ if (params$new_models) {
   source_python("./Scripts/Model_load.py")
 }
 
-
 # Light GBM analysis ------------------------------------------------------
-lgbm_model <- lgb.load("Models/LGBM.txt")
+model_path <- paste0("Models/", env_name, "/LGBM.txt")
+lgbm_model <- lgb.load(model_path)
 lgbm_test_data_pred <- as.matrix(x = ml_test_data$values)
 # lgbm_params <- py$lgbm_params
 
@@ -75,7 +75,8 @@ lgbm_model_results <-
       lgbm_shap_plot)
 
 # XGBoost analysis --------------------------------------------------------
-xgboost_model <- xgb.load("Models/XGBoost.txt")
+model_path <- paste0("Models/", env_name, "/XGBoost.txt")
+xgboost_model <- xgb.load(model_path)
 xgboost_model$feature_names <- feature_names
 xgboost_train <- data.matrix(select(analysis_data, -"eih"))
 xgboost_test_data_pred <- as.matrix(x = ml_test_data$values)
@@ -155,13 +156,13 @@ danet_confusion <- confusionMatrix(
 # Save environment to avoid recomputing
 dir_create(path = paste0("Output/", analysis_date, "/params/"))
 dir_create(path = paste0("Output/", analysis_date, "/models/"))
-file_copy(
-  path = "Models/LGBM.txt",
-  new_path = paste0("Output/", analysis_date, "/models/LGBM.txt")
-)
-file_copy(
-  path = "Models/XGBoost.txt",
-  new_path = paste0("Output/", analysis_date, "/models/XGBoost.txt")
-)
-lgbm_export(lgbm_model_results = lgbm_model_results)
-xgboost_export(xgboost_model_results = xgboost_model_results)
+# file_copy(
+#   path = "Models/LGBM.txt",
+#   new_path = paste0("Output/", analysis_date, "/models/LGBM.txt")
+# )
+# file_copy(
+#   path = "Models/XGBoost.txt",
+#   new_path = paste0("Output/", analysis_date, "/models/XGBoost.txt")
+# )
+# lgbm_export(lgbm_model_results = lgbm_model_results)
+# xgboost_export(xgboost_model_results = xgboost_model_results)
