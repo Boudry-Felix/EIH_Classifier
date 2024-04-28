@@ -39,7 +39,6 @@ params:
     label: "Features to exclude from clustering and training:"
     value: c("saturation_rest", "saturation_end", "saturation_delta", "subject", "eih_severity")
     input: text
-bibliography: EIH_modeling.bib
 ---
 
 ```{r Setup, echo=FALSE, message=FALSE, warning=FALSE}
@@ -85,8 +84,8 @@ cluster_number <- 2
 cluster_number_names <- "two"
 ml_split <- 0.8
 optuna_trials <- 25000
-lgbm_rounds <- 75
-xgboost_rounds <- 75
+lgbm_rounds <- 45
+xgboost_rounds <- 45
 ```
 
 ```{r Import & scripts, include=FALSE}

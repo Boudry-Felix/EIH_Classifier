@@ -96,24 +96,8 @@ kclust_coord <-
     plot.title = element_text(face = "plain")
   )
 
-hclust_bu_graph <-
-  fviz_dend(
-    x = hclust_bu_data,
-    cex = 0.5,
-    k_colors = unique(analysis_data$eih),
-    label_cols = analysis_data$eih,
-    guides = "none",
-    type = "circular"
-  )
-hclust_td_graph <-
-  fviz_dend(
-    x = hclust_td_data,
-    cex = 0.5,
-    k_colors = unique(analysis_data$eih),
-    label_cols = analysis_data$eih,
-    guides = "none",
-    type = "circular"
-  )
+hclust_bu_graph <- hclust_plot(clust_data = hclust_bu_data)
+hclust_td_graph <- hclust_plot(clust_data = hclust_td_data)
 
 ### Boxplots --------------------------------------------------------------
 ### Boxplots of analyzed data by cluster

@@ -317,6 +317,33 @@ eval_knit_param <- function(input) {
 
 # Plots -------------------------------------------------------------------
 ## Clusters ---------------------------------------------------------------
+hclust_plot <- function(clust_data) {
+  clust_data <- as.dendrogram(clust_data)
+  clust_color <- ifelse(analysis_data$eih == 1, "skyblue", "orange")
+  par(mar = c(8, 2, 2, 2))
+
+  clust_data %>%
+    dendextend::set("labels_col",
+                    value = c("skyblue", "orange"),
+                    k = cluster_number) %>%
+    dendextend::set("branches_k_color",
+                    value = c("skyblue", "orange"),
+                    k = cluster_number) %>%
+    dendextend::set("leaves_pch", 15)  %>%
+    dendextend::set("nodes_cex", 0.4) %>%
+    dendextend::set("labels_cex", 0.6) %>%
+    plot(axes = FALSE)
+
+  dendextend::colored_bars(
+    colors = clust_color,
+    dend = clust_data,
+    rowLabels = "EIH",
+    text_shift = -1
+  )
+  grDevices::recordPlot()
+}
+
+## Boxplots ---------------------------------------------------------------
 boxplots_by_clust <- function(data_col, cluster_col, used_env) {
   ggplot2::ggplot(plot_df, aes(x = !!sym(cluster_col), y = !!sym(paste(data_col))), environment = used_env) +
     ggplot2::geom_boxplot(aes(
