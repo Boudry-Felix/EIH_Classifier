@@ -48,6 +48,7 @@ knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE
 )
+reticulate::use_virtualenv(virtualenv = "EIH")
 project_seed <- params$seed
 set.seed(seed = project_seed)
 
