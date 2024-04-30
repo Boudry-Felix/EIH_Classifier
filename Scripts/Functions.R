@@ -14,27 +14,14 @@ summary_gen <- function() {
     project_import(project_path = easycsv::choose_dir())
 
   summary <- imported_data$data %>%
-    common_col() # Keeping only common columns
+    common_col() %>% # Keeping only common columns
+    lapply(\(x) {
+      dplyr::filter(.data = x, performance::check_outliers(x = x) == F)
+    })
 
   summary <-
-    my_summary(summary, summary, infos_df = imported_data$infos) %>%
-    compute_new_features()
-
-  # Compute ratios
-  for (metric in c("mean", "median", "max", "min", "sd", "var", "rms")) {
-    ve_metric <- paste0("ve_", metric)
-    vo2_metric <- paste0("vo2_", metric)
-    vco2_metric <- paste0("vco2_", metric)
-    hr_metric <- paste0("hr_", metric)
-    summary[[paste0("ve/vo2", "_", metric)]] <-
-      summary[[ve_metric]] / (summary[[vo2_metric]] / 1000)
-    summary[[paste0("ve/vco2", "_", metric)]] <-
-      summary[[ve_metric]] / (summary[[vco2_metric]] / 1000)
-    summary[[paste0("vco2/vo2", "_", metric)]] <-
-      (summary[[vco2_metric]] / 1000) / (summary[[vo2_metric]] / 1000)
-    summary[[paste0("vo2/hr", "_", metric)]] <-
-      summary[[vo2_metric]] / summary[[hr_metric]]
-  }
+    my_summary(summary, summary, infos_df = imported_data$infos)# %>%
+  # compute_new_features()
 
   dir.create(path = "Data")
   write.csv(x = summary, file = "Data/summary.csv")
@@ -94,14 +81,43 @@ project_import <- function(project_path) {
            x = my_study)
     my_list <-
       sapply(
-        files_list,
-        readxl::read_excel,
-        .name_repair = "minimal",
-        col_type = "numeric",
+        X = files_list,
+        whippr::read_data,
+        metabolic_cart = "cosmed",
         simplify = FALSE,
         USE.NAMES = TRUE
       ) %>%
-      lapply(janitor::clean_names, sep_out = "")
+      lapply(X = .,
+             whippr::incremental_normalize,
+             has_baseline = FALSE) %>%
+      lapply(
+        X = .,
+        whippr::detect_outliers,
+        test_type = "incremental",
+        method_incremental = "anomaly"
+      ) %>%
+      lapply(as.data.frame) %>%
+      lapply(dplyr::filter, outlier == "no") %>%
+      lapply(
+        dplyr::select,
+        !c(
+          "protocol_phase",
+          "x",
+          "y",
+          "lwr_pred",
+          "upr_pred",
+          "outlier",
+          "t"
+        )
+      ) %>%
+      common_col() %>%
+      lapply(janitor::clean_names, sep_out = "") %>%
+      lapply(dplyr::mutate, "ve/vco2" = ve / (vco2 / 1000)) %>%
+      lapply(dplyr::mutate, "ve/vo2" = ve / (vo2 / 1000)) %>%
+      lapply(dplyr::mutate, "vco2/vo2" = (vco2 / 1000) / (vo2 / 1000)) %>%
+      lapply(dplyr::mutate, "vo2/hr" = vo2 / hr)
+
+
     imported_data <- append(x = imported_data, values = my_list)
     imported_data_infos <-
       rbind(x = imported_data_infos, values = data_infos)
@@ -112,8 +128,7 @@ project_import <- function(project_path) {
       replacement = "",
       x = names(imported_data)
     ) %>%
-    gsub(pattern = ".xlsx",
-         replacement = "")
+    gsub(pattern = ".xlsx", replacement = "")
   remove_names <-
     setdiff(names(imported_data), imported_data_infos$subject) %>%
     append(setdiff(imported_data_infos$subject, names(imported_data)))
@@ -207,8 +222,7 @@ data_read <- function(fun_params = params) {
       list.files() %>%
       file_path_sans_ext()
     imported_data <<-
-      list.files(path = fun_params$data_folder,
-                 full.names = TRUE) %>%
+      list.files(path = fun_params$data_folder, full.names = TRUE) %>%
       lapply(fread, na.strings = c("NA", "na", "", "Inf", "-Inf")) %>%
       `names<-`(value = imported_data_names)
   }
@@ -220,8 +234,7 @@ compute_new_features <- function(input) {
   vo2_columns <- # List max columns
     vo2_colnames %>%
     lapply(\(x) {
-      assign(x = paste0(x, "_rel"),
-             value = input[[x]] / input[["weight"]])
+      assign(x = paste0(x, "_rel"), value = input[[x]] / input[["weight"]])
     }) %>%
     as.data.frame() %>%
     `colnames<-`(value = paste0(vo2_colnames, "_rel"))
@@ -231,8 +244,7 @@ compute_new_features <- function(input) {
     hr_colnames %>%
     lapply(\(x) {
       hr_theo <- 211 - (0.64 * input[["age"]])
-      assign(x = paste0(x, "_rel"),
-             value = input[[x]] * 100 / hr_theo)
+      assign(x = paste0(x, "_rel"), value = input[[x]] * 100 / hr_theo)
     }) %>%
     as.data.frame() %>%
     `colnames<-`(value = paste0(hr_colnames, "_rel"))
@@ -257,8 +269,7 @@ col_encode <- function(my_col) {
 
 df_encode <- function(input = my_data, list_names) {
   # Encode (labeling) entire data frames
-  encoded_data <- lapply(X = input,
-                         FUN = col_encode) %>% as.data.frame()
+  encoded_data <- lapply(X = input, FUN = col_encode) %>% as.data.frame()
   output <- dplyr::lst(encoded_data)
   if (!missing(x = list_names)) {
     names(output) <- list_names
@@ -270,9 +281,9 @@ gbm_data_partition <- function(input, sep_col, sep_prop) {
   split_indexes <- # Separate data in two using p
     caret::createDataPartition(y = input[[sep_col]], p = sep_prop, list = FALSE)
   train_data <- # Create a train data set
-    input[split_indexes,]
+    input[split_indexes, ]
   test_data <- # Create a test data set
-    input[-split_indexes,]
+    input[-split_indexes, ]
   return(dplyr::lst(train_data, test_data))
 }
 
@@ -368,8 +379,7 @@ lgb.plot.tree <- function(model = NULL,
   }
   # check DiagrammeR is available
   if (!requireNamespace("DiagrammeR", quietly = TRUE)) {
-    stop("DiagrammeR package is required for lgb.plot.tree",
-         call. = FALSE)
+    stop("DiagrammeR package is required for lgb.plot.tree", call. = FALSE)
   }
   # tree must be numeric
   if (!inherits(tree, 'numeric')) {
@@ -537,9 +547,7 @@ result_save <- function() {
   # Save results and clean base directory
   ## Savings
   fs::dir_copy(path = "Models",
-               new_path = paste0("Output/",
-                                 analysis_date,
-                                 "/Models"))
+               new_path = paste0("Output/", analysis_date, "/Models"))
   fs::dir_copy(path = "./EIH_Modeling_Classification_files/figure-html/",
                new_path = paste0("Output/", analysis_date))
   file.rename(
@@ -557,10 +565,7 @@ lgbm_export <-
   function(lgbm_model_results) {
     saveRDS(
       object = lgbm_model_results,
-      file = paste0("Output/",
-                    analysis_date,
-                    "/params/lgbm_model",
-                    ".rds")
+      file = paste0("Output/", analysis_date, "/params/lgbm_model", ".rds")
     )
     if (exists("study_lgbm", envir = compute_env)) {
       saveRDS(
@@ -588,10 +593,7 @@ xgboost_export <-
   function(xgboost_model_results) {
     saveRDS(
       object = xgboost_model_results,
-      file = paste0("Output/",
-                    analysis_date,
-                    "/params/xgboost_model",
-                    ".rds")
+      file = paste0("Output/", analysis_date, "/params/xgboost_model", ".rds")
     )
     if (exists("study_xgboost", envir = compute_env)) {
       saveRDS(

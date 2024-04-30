@@ -117,5 +117,5 @@ xgboost_params = xgboost_model.get_params()
 feature_names = xgboost_model.get_booster().feature_names
 xgboost_pred_y = xgboost_model.predict(test_x)
 
-model_path = "Models/" + r.env_name + "/XGBoost.txt"
+model_path = "Models/" + r.env_name + "/XGBoost.json"
 xgboost_model.save_model(model_path)

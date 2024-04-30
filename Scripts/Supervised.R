@@ -75,7 +75,7 @@ lgbm_model_results <-
       lgbm_shap_plot)
 
 # XGBoost analysis --------------------------------------------------------
-model_path <- paste0("Models/", env_name, "/XGBoost.txt")
+model_path <- paste0("Models/", env_name, "/XGBoost.json")
 xgboost_model <- xgb.load(model_path)
 xgboost_model$feature_names <- feature_names
 xgboost_train <- data.matrix(select(analysis_data, -"eih"))

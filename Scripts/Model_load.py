@@ -27,7 +27,7 @@ lgbm_pred_y = lgbm_model.predict(test_x)
 lgbm_pred_y = np.round(lgbm_pred_y)
 
 # XGBoost
-model_path = "Models/" + r.env_name + "/XGBoost.txt"
+model_path = "Models/" + r.env_name + "/XGBoost.json"
 xgboost_model = xgb.XGBClassifier()
 xgboost_model.load_model(fname=model_path)
 # xgboost_params = xgboost_model.get_params()

@@ -1,10 +1,8 @@
 import os
 import pandas as pd
 import numpy as np
-
 from tensorflow.random import set_seed
 import autokeras as ak
-
 from sklearn.model_selection import train_test_split
 from pytorch_tabular import TabularModel
 from pytorch_tabular.models import (NodeConfig,
@@ -14,9 +12,10 @@ from pytorch_tabular.config import (DataConfig,
                                     OptimizerConfig,
                                     TrainerConfig,
                                     ExperimentConfig)
-from pytorch_tabular.models.common.heads import LinearHeadConfig
+from pytorch_tabular import utils
 
 set_seed(int(r.project_seed))
+utils.suppress_lightning_logs(log_level=None)
 
 # Data import
 train_x = pd.DataFrame(r.ml_train_data["values"])
