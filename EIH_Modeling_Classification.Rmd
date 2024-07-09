@@ -21,16 +21,8 @@ params:
     input: numeric
   data:
     label: "Input dataset:"
-    value: none
-    input: file   
-  data_list:
-    label: "List of files to import:"
-    value: none
-    input: text
-  data_folder:
-    label: "Path to multiple data sets folder:"
-    value: "./Data"
-    input: text
+    value: "./Data/summary.csv"
+    input: file
   predict_label:
     label: "Feature to predict:"
     value: c("eih")
@@ -84,48 +76,31 @@ predict_label <-
 cluster_number <- 2
 cluster_number_names <- "two"
 ml_split <- 0.8
-optuna_trials <- 25000
+optuna_trials <- 25
 lgbm_rounds <- 45
 xgboost_rounds <- 45
 ```
 
 ```{r Import & scripts, include=FALSE}
 # Import selected data set creating imported_data_names and imported_data
-data_read()
-
-# Create environments (one per data set, used for results storage)
-my_envs <- lapply(X = imported_data_names, FUN = \(df_name) {
-  my_name <- df_name
-  df_name <- paste0(df_name, "_env") %>%
-    assign(value = new.env())
-  assign(x = "name", value = my_name, envir = df_name)
-  return(df_name)
-}) %>%
-  `names<-`(value = imported_data_names)
+imported_data <-
+  fread(input = params$data, na.strings = c("NA", "na", "", "Inf", "-Inf"))
 
 # Source scripts for analysis
-for (df_name in imported_data_names) {
-  dir_create(path = paste0("Models/", df_name))
-  env_name <- as.character(df_name)
-  no_num_colnames <- # Columns that will be encoded
-    dplyr::select_if(imported_data[[df_name]], negate(is.numeric)) %>%
-    colnames()
-  antrop_data <- imported_data[[df_name]][, c("age",
-                                              "height",
-                                              "weight",
-                                              "train_years",
-                                              "train_volume")]
-  analysis_data <- imported_data[[df_name]] %>%
-    df_encode() %$%
-    encoded_data %>%
-    clean_dataset() %>%
-    round(digits = 4)
-  names(convert_dic) <-
-    no_num_colnames # Naming encoding list elements
-  compute_env <- my_envs[[df_name]]
-  source("./Scripts/Unsupervised.R", local = compute_env)
-  source("./Scripts/Supervised.R", local = compute_env)
-}
+dir_create(path = paste0("Models/"))
+no_num_colnames <- # Columns that will be encoded
+  dplyr::select_if(imported_data, negate(is.numeric)) %>%
+  colnames()
+antrop_data <- imported_data[, c("age", "height", "weight", "train_years", "train_volume")]
+analysis_data <- imported_data %>%
+  df_encode() %$%
+  encoded_data %>%
+  clean_dataset() %>%
+  round(digits = 4)
+names(convert_dic) <-
+  no_num_colnames # Naming encoding list elements
+source("./Scripts/Unsupervised.R")
+source("./Scripts/Supervised.R")
 ```
 
 # EIH prediction
@@ -133,10 +108,264 @@ for (df_name in imported_data_names) {
 This report shows the classifications achieved using various methods to detect
 EIH subjects.
 
-```{r Results, echo=FALSE, results='asis'}
-for (my_env in my_envs) {
-  cat(knitr::knit_child('Result_template.Rmd', envir = my_env, quiet = TRUE))
-}
+# Material and methods
+
+## Subjects
+
+```{r}
+describe(x = antrop_data, na.rm = T) %>%
+  round() %>%
+  select(c("mean", "sd", "median", "min", "max")) %>%
+  my_table(
+    caption = paste0(
+      "<center><strong>Anthropological values (n = ",
+      nrow(analysis_data) ,
+      ")</center></strong>"
+    )
+  )
+```
+
+# Results
+
+## Unsupervised learning
+
+The unsupervised approach is based on algorithms that don't need labels to
+create a classification. This mainly include clustering algorithms such as
+k-means and hierarchical clustering.
+
+### K-means clustering
+
+```{r fig.align='center'}
+kclust_graph
+kclust_coord
+kclust_confusion$table %>%
+  my_table(caption = "<center><strong>K-means confusion matrix</center></strong>", row.names = TRUE) %>%
+  kableExtra::column_spec(1, bold = TRUE)
+kclust_confusion$overall %>%
+  my_table(caption = "<center><strong>Overall metrics</center></strong>", col.names = NULL)
+kclust_confusion$byClass %>%
+  my_table(caption = "<center><strong>Metrics by class</center></strong>", col.names = NULL)
+```
+
+### Hierarchical agglomerative clustering
+
+```{r fig.align='center'}
+hclust_bu_graph
+hclust_bu_confusion$table %>%
+  my_table(caption = "<center><strong>HC agglomerative confusion matrix</center></strong>", row.names = TRUE) %>%
+  kableExtra::column_spec(1, bold = TRUE)
+hclust_bu_confusion$overall %>% my_table(caption = "<center><strong>Overall metrics</center></strong>", col.names = NULL)
+hclust_bu_confusion$byClass %>%
+  my_table(caption = "<center><strong>Metrics by class</center></strong>", col.names = NULL)
+```
+
+### Hierarchical divisive clustering
+
+```{r fig.align='center'}
+hclust_td_graph
+hclust_td_confusion$table %>%
+  my_table(caption = "<center><strong>HC divisive confusion matrix</center></strong>", row.names = TRUE) %>%
+  kableExtra::column_spec(1, bold = TRUE)
+hclust_td_confusion$overall %>% my_table(caption = "<center><strong>Overall metrics</center></strong>", col.names = NULL)
+hclust_td_confusion$byClass %>%
+  my_table(caption = "<center><strong>Metrics by class</center></strong>", col.names = NULL)
+```
+
+## Supervised learning
+
+The supervised approach, compared to the unsupervised one, require labels to try
+a classification and the correct the classification process and criteria. In
+this work we used LGBM and XGBoost and decision tree based methods and a Dense
+and a NODE model as neural network approaches.
+
+### LightGBM
+
+The model computed with the best parameters of this trial has the following
+metrics:
+
+```{r fig.align='center'}
+# Confusion tables
+lgbm_confusion$table %>%
+  my_table(caption = "<center><strong>LGBM confusion matrix</center></strong>", row.names = TRUE) %>%
+  kableExtra::column_spec(1, bold = TRUE)
+lgbm_confusion$overall %>% my_table(caption = "<center><strong>Overall metrics</center></strong>", col.names = NULL)
+lgbm_confusion$byClass %>%
+  my_table(caption = "<center><strong>Metrics by class</center></strong>", col.names = NULL)
+
+# SHAP plots
+lgbm_shap_plot %>%
+  walk(print)
+# Features tables
+feature_data <- imported_data %>%
+  as.data.frame() %>%
+  select(c(
+    gsub(
+      "\\.",
+      "/",
+      lgbm_shap_plot$importance_plot$data$feature
+    ),
+    predict_label
+  ))
+
+tab1 <-
+  scipub::FullTable1(data = feature_data,
+                     strata = predict_label,
+                     es_col = FALSE)
+
+my_table(tab1$table) %>%
+  kableExtra::footnote(general = tab1$caption, general_title = "")
+
+describeBy(
+  x = feature_data,
+  group = feature_data[, predict_label],
+  mat = TRUE,
+  digits = 2,
+  IQR = TRUE,
+  quant = c(0.25, 0.5, 0.75),
+  skew = FALSE,
+  ranges = T
+) %>%
+  my_table()
+```
+
+### XGBoost
+
+The model computed with the best parameters of this trial has the following
+metrics:
+
+```{r fig.align='center'}
+# Confusion tables
+xgboost_confusion$table %>%
+  my_table(caption = "<center><strong>XGBoost confusion matrix</center></strong>", row.names = TRUE) %>%
+  kableExtra::column_spec(1, bold = TRUE)
+xgboost_confusion$overall %>% my_table(caption = "<center><strong>Overall metrics</center></strong>", col.names = NULL)
+xgboost_confusion$byClass %>%
+  my_table(caption = "<center><strong>Metrics by class</center></strong>", col.names = NULL)
+
+# SHAP plots
+xgboost_shap_plot %>%
+  walk(print)
+
+# Features tables
+feature_data <- imported_data %>%
+  as.data.frame() %>%
+  select(c(
+    gsub(
+      "\\.",
+      "/",
+      xgboost_shap_plot$importance_plot$data$feature
+    ),
+    predict_label
+  ))
+
+tab1 <-
+  scipub::FullTable1(data = feature_data,
+                     strata = predict_label,
+                     es_col = FALSE)
+
+my_table(tab1$table) %>%
+  kableExtra::footnote(general = tab1$caption, general_title = "")
+
+describeBy(
+  x = feature_data,
+  group = feature_data[, predict_label],
+  mat = TRUE,
+  digits = 2,
+  IQR = TRUE,
+  quant = c(0.25, 0.5, 0.75),
+  skew = FALSE,
+  ranges = T
+) %>%
+  my_table()
+```
+
+### PyTorch Tabular NODE
+
+```{r fig.align='center'}
+# Confusion tables
+node_confusion$table %>%
+  my_table(caption = "<center><strong>NODE NN confusion matrix</center></strong>", row.names = TRUE) %>%
+  kableExtra::column_spec(1, bold = TRUE)
+node_confusion$overall %>% my_table(caption = "<center><strong>Overall metrics</center></strong>", col.names = NULL)
+node_confusion$byClass %>%
+  my_table(caption = "<center><strong>Metrics by class</center></strong>", col.names = NULL)
+```
+
+### PyTorch Tabular GANDALF
+
+```{r fig.align='center'}
+# Confusion tables
+gandalf_confusion$table %>%
+  my_table(caption = "<center><strong>GANDALF NN confusion matrix</center></strong>", row.names = TRUE) %>%
+  kableExtra::column_spec(1, bold = TRUE)
+gandalf_confusion$overall %>% my_table(caption = "<center><strong>Overall metrics</center></strong>", col.names = NULL)
+gandalf_confusion$byClass %>%
+  my_table(caption = "<center><strong>Metrics by class</center></strong>", col.names = NULL)
+```
+
+### PyTorch Tabular DANET
+
+```{r fig.align='center'}
+# Confusion tables
+danet_confusion$table %>%
+  my_table(caption = "<center><strong>GANDALF NN confusion matrix</center></strong>", row.names = TRUE) %>%
+  kableExtra::column_spec(1, bold = TRUE)
+danet_confusion$overall %>% my_table(caption = "<center><strong>Overall metrics</center></strong>", col.names = NULL)
+danet_confusion$byClass %>%
+  my_table(caption = "<center><strong>Metrics by class</center></strong>", col.names = NULL)
+```
+
+# Models comparison
+
+```{r fig.align='center'}
+result_list <-
+  lst(
+    results_lgbm = lst(
+      lgbm_confusion$overall[["Accuracy"]],
+      lgbm_confusion$overall[["Kappa"]],
+      lgbm_confusion$byClass[["F1"]],
+      lgbm_confusion$byClass[["Precision"]],
+      lgbm_confusion$byClass[["Recall"]]
+    ),
+    results_xgboost = lst(
+      xgboost_confusion$overall[["Accuracy"]],
+      xgboost_confusion$overall[["Kappa"]],
+      xgboost_confusion$byClass[["F1"]],
+      xgboost_confusion$byClass[["Precision"]],
+      xgboost_confusion$byClass[["Recall"]]
+    ),
+    results_node = lst(
+      node_confusion$overall[["Accuracy"]],
+      node_confusion$overall[["Kappa"]],
+      node_confusion$byClass[["F1"]],
+      node_confusion$byClass[["Precision"]],
+      node_confusion$byClass[["Recall"]]
+    ),
+    results_gandalf = lst(
+      gandalf_confusion$overall[["Accuracy"]],
+      gandalf_confusion$overall[["Kappa"]],
+      gandalf_confusion$byClass[["F1"]],
+      gandalf_confusion$byClass[["Precision"]],
+      gandalf_confusion$byClass[["Recall"]]
+    ),
+    results_danet = lst(
+      danet_confusion$overall[["Accuracy"]],
+      danet_confusion$overall[["Kappa"]],
+      danet_confusion$byClass[["F1"]],
+      danet_confusion$byClass[["Precision"]],
+      danet_confusion$byClass[["Recall"]]
+    )
+    
+  )
+
+do.call(rbind, result_list) %>%
+  `colnames<-`(c("Accuracy",
+                 "Kappa",
+                 "F1",
+                 "Precision",
+                 "Recall")) %>%
+  `rownames<-`(c("LGBM", "XGBoost", "NODE", "GANDALF", "DANET")) %>%
+  my_table()
 ```
 
 # Knitting parameters

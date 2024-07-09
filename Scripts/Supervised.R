@@ -48,7 +48,7 @@ if (params$new_models) {
 }
 
 # Light GBM analysis ------------------------------------------------------
-model_path <- paste0("Models/", env_name, "/LGBM.txt")
+model_path <- paste0("Models/", "/LGBM.txt")
 lgbm_model <- lgb.load(model_path)
 lgbm_test_data_pred <- as.matrix(x = ml_test_data$values)
 # lgbm_params <- py$lgbm_params
@@ -75,7 +75,7 @@ lgbm_model_results <-
       lgbm_shap_plot)
 
 # XGBoost analysis --------------------------------------------------------
-model_path <- paste0("Models/", env_name, "/XGBoost.json")
+model_path <- paste0("Models/", "/XGBoost.json")
 xgboost_model <- xgb.load(model_path)
 xgboost_model$feature_names <- feature_names
 xgboost_train <- data.matrix(select(analysis_data, -"eih"))
@@ -103,18 +103,6 @@ xgboost_model_results <-
   lst(xgboost_model,
       xgboost_confusion,
       xgboost_shap_plot)
-
-# Dense NN ----------------------------------------------------------------
-dense_confusion <- confusionMatrix(
-  factor((dense_pred_y + 1) %>% as.vector() %>%
-           inverse.transform(enc = .GlobalEnv$convert_dic$eih),
-         levels = c("EIH", "NEIH")
-  ),
-  factor((dl_test$eih + 1) %>% as.vector() %>%
-           inverse.transform(enc = .GlobalEnv$convert_dic$eih),
-         levels = c("EIH", "NEIH")
-  )
-)
 
 # NODE NN -----------------------------------------------------------------
 node_confusion <- confusionMatrix(
@@ -151,18 +139,3 @@ danet_confusion <- confusionMatrix(
          levels = c("EIH", "NEIH")
   )
 )
-
-# Export data -------------------------------------------------------------
-# Save environment to avoid recomputing
-dir_create(path = paste0("Output/", analysis_date, "/params/"))
-dir_create(path = paste0("Output/", analysis_date, "/models/"))
-# file_copy(
-#   path = "Models/LGBM.txt",
-#   new_path = paste0("Output/", analysis_date, "/models/LGBM.txt")
-# )
-# file_copy(
-#   path = "Models/XGBoost.txt",
-#   new_path = paste0("Output/", analysis_date, "/models/XGBoost.txt")
-# )
-# lgbm_export(lgbm_model_results = lgbm_model_results)
-# xgboost_export(xgboost_model_results = xgboost_model_results)

@@ -127,7 +127,6 @@ cluster_boxplots <- lapply(
     X = colnames(.GlobalEnv$plot_df),
     FUN = boxplots_by_clust,
     cluster_col = my_col,
-    used_env = compute_env,
     simplify = FALSE,
     USE.NAMES = TRUE
   )
