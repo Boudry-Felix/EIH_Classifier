@@ -88,36 +88,16 @@ kclust_graph <-
     shape = (analysis_data$eih + 1) %>%
       inverse.transform(enc = convert_dic$eih)
   )) +
-  ggtitle("K-means clustering for EIH status") +
   labs(shape = "Status")
 kclust_coord <-
   plot_clus_coord(cluster_model = kclust_data, data = cluster_data) +
-  ggtitle("K-means feature importance for EIH status") +
   theme(
     axis.text.x.bottom = element_text(angle = 45, size = 5),
     plot.title = element_text(face = "plain")
   )
 
-hclust_bu_graph <-
-  fviz_dend(
-    x = hclust_bu_data,
-    cex = 0.5,
-    k_colors = unique(analysis_data$eih),
-    label_cols = analysis_data$eih,
-    guides = "none",
-    type = "circular"
-  ) +
-  ggtitle("Hierarchical clustering for EIH status")
-hclust_td_graph <-
-  fviz_dend(
-    x = hclust_td_data,
-    cex = 0.5,
-    k_colors = unique(analysis_data$eih),
-    label_cols = analysis_data$eih,
-    guides = "none",
-    type = "circular"
-  ) +
-  ggtitle("Hierarchical clustering for EIH status")
+hclust_bu_graph <- hclust_plot(clust_data = hclust_bu_data)
+hclust_td_graph <- hclust_plot(clust_data = hclust_td_data)
 
 ### Boxplots --------------------------------------------------------------
 ### Boxplots of analyzed data by cluster

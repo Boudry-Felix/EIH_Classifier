@@ -15,6 +15,6 @@ LaTeX: XeLaTeX
 AutoAppendNewline: Yes
 StripTrailingWhitespace: Yes
 
-PythonType: conda
-PythonVersion: 3.10.13
-PythonPath: ~/micromamba/envs/EIH/bin/python
+PythonType: virtualenv
+PythonVersion: 3.9.19
+PythonPath: ~/.virtualenvs/EIH/bin/python

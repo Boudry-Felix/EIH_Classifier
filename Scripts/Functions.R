@@ -13,24 +13,18 @@ summary_gen <- function() {
   imported_data <- # Import all data and it's informations
     project_import(project_path = easycsv::choose_dir())
 
-  summary_abs <- imported_data$data %>%
-    common_col() # Keeping only common columns
+  summary <- imported_data$data %>%
+    common_col() #%>% # Keeping only common columns
+    # lapply(\(x) {
+    #   dplyr::filter(.data = x, performance::check_outliers(x = x) == F)
+    # })
 
-  # Compute ratios
-  summary_abs <- lapply(summary_abs, \(x) {
-    x <- cbind(x, `ve/vo2` = x$ve / x$vo2) %>%
-      cbind(`ve/vco2` = x$ve / x$vco2) %>%
-      cbind(`vco2/vo2` = x$vco2 / x$vo2) %>%
-      cbind(`vo2/hr` = x$vo2 / x$hr)
-    return(x)
-  })
-
-  summary_abs <-
-    my_summary(summary_abs, summary_abs, infos_df = imported_data$infos) %>%
-    compute_new_features()
+  summary <-
+    my_summary(summary, summary, infos_df = imported_data$infos)# %>%
+  # compute_new_features()
 
   dir.create(path = "Data")
-  write.csv(x = summary_abs, file = "Data/summary.csv")
+  write.csv(x = summary, file = "Data/summary.csv")
 }
 
 project_import <- function(project_path) {
@@ -87,17 +81,47 @@ project_import <- function(project_path) {
            x = my_study)
     my_list <-
       sapply(
-        files_list,
-        readxl::read_excel,
-        .name_repair = "minimal",
-        col_type = "numeric",
+        X = files_list,
+        whippr::read_data,
+        metabolic_cart = "cosmed",
         simplify = FALSE,
         USE.NAMES = TRUE
       ) %>%
-      lapply(janitor::clean_names, sep_out = "")
+      # lapply(na.omit) %>%
+      lapply(X = .,
+             whippr::incremental_normalize,
+             has_baseline = FALSE) %>%
+      lapply(
+        X = .,
+        whippr::detect_outliers,
+        test_type = "incremental",
+        method_incremental = "anomaly"
+      ) %>%
+      lapply(as.data.frame) %>%
+      lapply(dplyr::filter, outlier == "no") %>%
+      lapply(
+        dplyr::select,
+        -any_of(c(
+          "protocol_phase",
+          "x",
+          "y",
+          "lwr_pred",
+          "upr_pred",
+          "outlier",
+          "t"
+        ))
+      ) %>%
+      common_col() %>%
+      lapply(janitor::clean_names, sep_out = "") %>%
+      lapply(dplyr::mutate, "ve/vco2" = ve / (vco2 / 1000)) %>%
+      lapply(dplyr::mutate, "ve/vo2" = ve / (vo2 / 1000)) %>%
+      lapply(dplyr::mutate, "vco2/vo2" = (vco2 / 1000) / (vo2 / 1000)) %>%
+      lapply(dplyr::mutate, "vo2/hr" = vo2 / hr)
+
+
     imported_data <- append(x = imported_data, values = my_list)
     imported_data_infos <-
-      rbind(x = imported_data_infos, values = data_infos)
+      rbind(x = imported_data_infos, values = data_infos, fill = TRUE)
   }
   names(imported_data) <- # Renaming objects
     gsub(
@@ -105,8 +129,7 @@ project_import <- function(project_path) {
       replacement = "",
       x = names(imported_data)
     ) %>%
-    gsub(pattern = ".xlsx",
-         replacement = "")
+    gsub(pattern = ".xlsx", replacement = "")
   remove_names <-
     setdiff(names(imported_data), imported_data_infos$subject) %>%
     append(setdiff(imported_data_infos$subject, names(imported_data)))
@@ -123,8 +146,8 @@ common_col <- function(df_list) {
     output_col <-
       stringi::stri_replace_all_regex(
         str = input_col,
-        pattern = c("Rf|rf|fr|Fr|FR|f_r", "Hr|hr|FC|fc|Fc|f_c"),
-        replacement = c("RF", "HR"),
+        pattern = c("Rf|rf|fr|Fr|FR|f_r|F.R.", "Hr|hr|FC|fc|Fc|f_c|F.C.", "TaVE(BTPS)"),
+        replacement = c("RF", "HR", "VE"),
         vectorize = FALSE
       )
     colnames(x = x) <- output_col
@@ -154,7 +177,7 @@ my_summary <- function(df_list, df_names, infos_df = infos) {
             min = \(x) base::min(x = x, na.rm = TRUE),
             median = \(x) stats::median(x = x, na.rm = TRUE),
             sd = \(x) stats::sd(x = x, na.rm = TRUE),
-            va =  \(x) stats::var(x = x, na.rm = TRUE),
+            var =  \(x) stats::var(x = x, na.rm = TRUE),
             rms = \(x) base::sqrt(base::mean(x = x, na.rm = TRUE))
           ),
           .names = "{.col}_{.fn}"
@@ -200,8 +223,7 @@ data_read <- function(fun_params = params) {
       list.files() %>%
       file_path_sans_ext()
     imported_data <<-
-      list.files(path = fun_params$data_folder,
-                 full.names = TRUE) %>%
+      list.files(path = fun_params$data_folder, full.names = TRUE) %>%
       lapply(fread, na.strings = c("NA", "na", "", "Inf", "-Inf")) %>%
       `names<-`(value = imported_data_names)
   }
@@ -213,8 +235,7 @@ compute_new_features <- function(input) {
   vo2_columns <- # List max columns
     vo2_colnames %>%
     lapply(\(x) {
-      assign(x = paste0(x, "_rel"),
-             value = input[[x]] / input[["weight"]])
+      assign(x = paste0(x, "_rel"), value = input[[x]] / input[["weight"]])
     }) %>%
     as.data.frame() %>%
     `colnames<-`(value = paste0(vo2_colnames, "_rel"))
@@ -224,8 +245,7 @@ compute_new_features <- function(input) {
     hr_colnames %>%
     lapply(\(x) {
       hr_theo <- 211 - (0.64 * input[["age"]])
-      assign(x = paste0(x, "_rel"),
-             value = input[[x]] * 100 / hr_theo)
+      assign(x = paste0(x, "_rel"), value = input[[x]] * 100 / hr_theo)
     }) %>%
     as.data.frame() %>%
     `colnames<-`(value = paste0(hr_colnames, "_rel"))
@@ -250,8 +270,7 @@ col_encode <- function(my_col) {
 
 df_encode <- function(input = my_data, list_names) {
   # Encode (labeling) entire data frames
-  encoded_data <- lapply(X = input,
-                         FUN = col_encode) %>% as.data.frame()
+  encoded_data <- lapply(X = input, FUN = col_encode) %>% as.data.frame()
   output <- dplyr::lst(encoded_data)
   if (!missing(x = list_names)) {
     names(output) <- list_names
@@ -263,9 +282,9 @@ gbm_data_partition <- function(input, sep_col, sep_prop) {
   split_indexes <- # Separate data in two using p
     caret::createDataPartition(y = input[[sep_col]], p = sep_prop, list = FALSE)
   train_data <- # Create a train data set
-    input[split_indexes,]
+    input[split_indexes, ]
   test_data <- # Create a test data set
-    input[-split_indexes,]
+    input[-split_indexes, ]
   return(dplyr::lst(train_data, test_data))
 }
 
@@ -310,6 +329,33 @@ eval_knit_param <- function(input) {
 
 # Plots -------------------------------------------------------------------
 ## Clusters ---------------------------------------------------------------
+hclust_plot <- function(clust_data) {
+  clust_data <- as.dendrogram(clust_data)
+  clust_color <- ifelse(analysis_data$eih == 1, "skyblue", "orange")
+  par(mar = c(8, 2, 2, 2))
+
+  clust_data %>%
+    dendextend::set("labels_col",
+                    value = c("skyblue", "orange"),
+                    k = cluster_number) %>%
+    dendextend::set("branches_k_color",
+                    value = c("skyblue", "orange"),
+                    k = cluster_number) %>%
+    dendextend::set("leaves_pch", 15)  %>%
+    dendextend::set("nodes_cex", 0.4) %>%
+    dendextend::set("labels_cex", 0.6) %>%
+    plot(axes = FALSE)
+
+  dendextend::colored_bars(
+    colors = clust_color,
+    dend = clust_data,
+    rowLabels = "EIH",
+    text_shift = -1
+  )
+  grDevices::recordPlot()
+}
+
+## Boxplots ---------------------------------------------------------------
 boxplots_by_clust <- function(data_col, cluster_col, used_env) {
   ggplot2::ggplot(plot_df, aes(x = !!sym(cluster_col), y = !!sym(paste(data_col))), environment = used_env) +
     ggplot2::geom_boxplot(aes(
@@ -334,8 +380,7 @@ lgb.plot.tree <- function(model = NULL,
   }
   # check DiagrammeR is available
   if (!requireNamespace("DiagrammeR", quietly = TRUE)) {
-    stop("DiagrammeR package is required for lgb.plot.tree",
-         call. = FALSE)
+    stop("DiagrammeR package is required for lgb.plot.tree", call. = FALSE)
   }
   # tree must be numeric
   if (!inherits(tree, 'numeric')) {
@@ -482,16 +527,17 @@ shap_plots <- function(model, test_data_pred) {
   importance_plot <-
     shapviz::sv_importance(object = shap_data,
                            kind = "bar",
-                           max_display = 5) +
-    ggtitle("Importance plot of the 5 most important features")
+                           max_display = 10L)
   waterfall_plot <-
-    shapviz::sv_waterfall(object = shap_data, row_id = 1) +
-    ggtitle("Waterfall plot of used features")
-  force_plot <- shapviz::sv_force(object = shap_data) +
-    ggtitle("Force plot of used features")
+    shapviz::sv_waterfall(object = shap_data,
+                          row_id = 1,
+                          max_display = 10L)
+  force_plot <-
+    shapviz::sv_force(object = shap_data, max_display = 10L)
   beeswarm_plot <-
-    shapviz::sv_importance(object = shap_data, kind = "beeswarm") +
-    ggtitle("Beeswarm plot of used features")
+    shapviz::sv_importance(object = shap_data,
+                           kind = "beeswarm",
+                           max_display = 10L)
 
   return(dplyr::lst(importance_plot, waterfall_plot, force_plot, beeswarm_plot))
 }
@@ -501,6 +547,8 @@ shap_plots <- function(model, test_data_pred) {
 result_save <- function() {
   # Save results and clean base directory
   ## Savings
+  fs::dir_copy(path = "Models",
+               new_path = paste0("Output/", analysis_date, "/Models"))
   fs::dir_copy(path = "./EIH_Modeling_Classification_files/figure-html/",
                new_path = paste0("Output/", analysis_date))
   file.rename(
@@ -512,22 +560,13 @@ result_save <- function() {
     )
   )
   save.image(file = paste0("./Output/", analysis_date, "/global.RData"))
-
-  ## CLeaning
-  file.remove(c(
-    "lgbm_model.txt",
-    "xgboost_model.txt"
-  ))
 }
 
 lgbm_export <-
   function(lgbm_model_results) {
     saveRDS(
       object = lgbm_model_results,
-      file = paste0("Output/",
-                    analysis_date,
-                    "/params/lgbm_model",
-                    ".rds")
+      file = paste0("Output/", analysis_date, "/params/lgbm_model", ".rds")
     )
     if (exists("study_lgbm", envir = compute_env)) {
       saveRDS(
@@ -555,10 +594,7 @@ xgboost_export <-
   function(xgboost_model_results) {
     saveRDS(
       object = xgboost_model_results,
-      file = paste0("Output/",
-                    analysis_date,
-                    "/params/xgboost_model",
-                    ".rds")
+      file = paste0("Output/", analysis_date, "/params/xgboost_model", ".rds")
     )
     if (exists("study_xgboost", envir = compute_env)) {
       saveRDS(

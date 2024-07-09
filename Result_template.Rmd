@@ -86,9 +86,8 @@ and a NODE model as neural network approaches.
 
 #### LightGBM
 
-The best LGBM model computed by Optuna has a accuracy of 
-**`r optuna_lgbm_best_accuracy`**. The model computed with the best 
-parameters of this trial has the following metrics:
+The model computed with the best parameters of this trial has the following
+metrics:
 
 ```{r fig.align='center'}
 # Confusion tables
@@ -100,21 +99,53 @@ lgbm_confusion$byClass %>%
   my_table(caption = "<center><strong>Metrics by class</center></strong>", col.names = NULL)
 
 # LGBM parameters
-lgbm_best_params %>%
-  as.data.frame() %>%
-  t() %>%
-  my_table(caption = "<center><strong>Best Optuna parameters</center></strong>")
+# lgbm_params %>%
+#   do.call(what = rbind) %>% 
+#   as.data.frame() %>%
+#   rownames_to_column() %>% 
+#   `colnames<-`(value = c("Parameter", "Value")) %>% 
+#   my_table(caption = "<center><strong>LGBM parameters</center></strong>")
 
 # SHAP plots
 lgbm_shap_plot %>%
   walk(print)
+# Features tables
+feature_data <- imported_data[[env_name]] %>%
+  as.data.frame() %>%
+  select(c(
+    gsub(
+      "\\.",
+      "/",
+      lgbm_shap_plot$importance_plot$data$feature
+    ),
+    predict_label
+  ))
+
+tab1 <-
+  scipub::FullTable1(data = feature_data,
+                     strata = predict_label,
+                     es_col = FALSE)
+
+my_table(tab1$table) %>%
+  kableExtra::footnote(general = tab1$caption, general_title = "")
+
+describeBy(
+  x = feature_data,
+  group = feature_data[, predict_label],
+  mat = TRUE,
+  digits = 2,
+  IQR = TRUE,
+  quant = c(0.25, 0.5, 0.75),
+  skew = FALSE,
+  ranges = T
+) %>%
+  my_table()
 ```
 
 #### XGBoost
 
-The best XGboost model computed by Optuna has a accuracy of 
-**`r optuna_xgb_best_accuracy`**. The model computed with the best parameters of
-this trial has the following metrics:
+The model computed with the best parameters of this trial has the following
+metrics:
 
 ```{r fig.align='center'}
 # Confusion tables
@@ -126,14 +157,48 @@ xgboost_confusion$byClass %>%
   my_table(caption = "<center><strong>Metrics by class</center></strong>", col.names = NULL)
 
 # XGBoost parameters
-xgboost_best_params %>%
-  as.data.frame() %>%
-  t() %>%
-  my_table(caption = "<center><strong>Best Optuna parameters</center></strong>")
+# xgboost_params %>%
+#   do.call(what = rbind) %>% 
+#   as.data.frame() %>%
+#   rownames_to_column() %>% 
+#   `colnames<-`(value = c("Parameter", "Value")) %>% 
+#   my_table(caption = "<center><strong>XGBoost parameters</center></strong>")
 
 # SHAP plots
 xgboost_shap_plot %>%
   walk(print)
+
+# Features tables
+feature_data <- imported_data[[env_name]] %>%
+  as.data.frame() %>%
+  select(c(
+    gsub(
+      "\\.",
+      "/",
+      xgboost_shap_plot$importance_plot$data$feature
+    ),
+    predict_label
+  ))
+
+tab1 <-
+  scipub::FullTable1(data = feature_data,
+                     strata = predict_label,
+                     es_col = FALSE)
+
+my_table(tab1$table) %>%
+  kableExtra::footnote(general = tab1$caption, general_title = "")
+
+describeBy(
+  x = feature_data,
+  group = feature_data[, predict_label],
+  mat = TRUE,
+  digits = 2,
+  IQR = TRUE,
+  quant = c(0.25, 0.5, 0.75),
+  skew = FALSE,
+  ranges = T
+) %>%
+  my_table()
 ```
 
 #### Keras

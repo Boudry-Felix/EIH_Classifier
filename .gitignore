@@ -26,14 +26,11 @@ vignettes/*.pdf
 *.knit.md
 # R Environment Variables
 .Renviron
+
 # Personnal add
 # Duplicates are for folders and links
-/Data/*
 Data
-/Output*
-/Environments/*
-/params/*
-/Images/*
+Output
 *.html
 *.pdf
 *.docx
@@ -43,10 +40,9 @@ Data
 *.txt
 *.csv
 *.ckpt
-Data_raw
-figure
 EIH_Modeling_Classification_files
 EIH_Modeling_Classification.md
 *_models
 *tmp*
 *log*
+Models/

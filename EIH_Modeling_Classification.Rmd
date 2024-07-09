@@ -12,14 +12,17 @@ output:
     fig_caption: yes
     keep_md: yes
 params:
+  new_models:
+    label: "Compute new models?"
+    value: true
   seed:
     label: "Seed:"
-    value: 256
+    value: 42
     input: numeric
   data:
     label: "Input dataset:"
     value: none
-    input: file
+    input: file   
   data_list:
     label: "List of files to import:"
     value: none
@@ -36,7 +39,6 @@ params:
     label: "Features to exclude from clustering and training:"
     value: c("saturation_rest", "saturation_end", "saturation_delta", "subject", "eih_severity")
     input: text
-bibliography: EIH_modeling.bib
 ---
 
 ```{r Setup, echo=FALSE, message=FALSE, warning=FALSE}
@@ -46,7 +48,7 @@ knitr::opts_chunk$set(
   message = FALSE,
   warning = FALSE
 )
-reticulate::use_condaenv("EIH", required = TRUE)
+reticulate::use_virtualenv(virtualenv = "EIH")
 project_seed <- params$seed
 set.seed(seed = project_seed)
 
@@ -82,16 +84,16 @@ predict_label <-
 cluster_number <- 2
 cluster_number_names <- "two"
 ml_split <- 0.8
-optuna_trials <- 3000
-lgbm_rounds <- 150
-xgboost_rounds <- 120
+optuna_trials <- 25000
+lgbm_rounds <- 45
+xgboost_rounds <- 45
 ```
 
 ```{r Import & scripts, include=FALSE}
-# Import selected dataset creating imported_data_names and imported_data
+# Import selected data set creating imported_data_names and imported_data
 data_read()
 
-# Create environments (one per dataset, used for results storage)
+# Create environments (one per data set, used for results storage)
 my_envs <- lapply(X = imported_data_names, FUN = \(df_name) {
   my_name <- df_name
   df_name <- paste0(df_name, "_env") %>%
@@ -103,6 +105,8 @@ my_envs <- lapply(X = imported_data_names, FUN = \(df_name) {
 
 # Source scripts for analysis
 for (df_name in imported_data_names) {
+  dir_create(path = paste0("Models/", df_name))
+  env_name <- as.character(df_name)
   no_num_colnames <- # Columns that will be encoded
     dplyr::select_if(imported_data[[df_name]], negate(is.numeric)) %>%
     colnames()
@@ -110,8 +114,7 @@ for (df_name in imported_data_names) {
                                               "height",
                                               "weight",
                                               "train_years",
-                                              "train_volume",
-                                              "vo2_max")]
+                                              "train_volume")]
   analysis_data <- imported_data[[df_name]] %>%
     df_encode() %$%
     encoded_data %>%
@@ -125,30 +128,10 @@ for (df_name in imported_data_names) {
 }
 ```
 
-# Introduction
+# EIH prediction
 
-It is well known that endurance performances are limited by physiological
-factors among which the cardio-respiratory is one of the most important
-(@amannConvectiveOxygenTransport2008, @bassettLimitingFactorsMaximum2000). This
-system can be limiting through different ways including the limitations of the
-cardiac output (Qc), the oxygen diffusion or the pulmonary perfusion. Those
-limitations can be enhanced by physical training and physiological adaptations
-to exercise. Thus with training we can observe an increased cardiac output,
-pulmonary perfusion or oxygen diffusion through an increased hemoglobin
-concentration.
-
-It's also well known that the environment can impact the oxygen pressures and
-thus the inspired volume. This limitation is also present during
-experimentation, like simulated altitude, during which the inspired fraction of
-oxygen is diminished.
-
-If the cardiac system is one of the most known limiting, the pulmonary system
-can also participated in the observed limitations. This system is complicated
-and the pulmonary anatomy is composed by several "section". A known
-phenomenon impacting athlete's performances is the exercise-induces hypoxaemia
-(EIH) (@raberinHypoxemieInduiteExercice2019). The purpose of this work is to be
-able to classify athletes as EIH or NEIH without using the direct indicator
-(saturation).
+This report shows the classifications achieved using various methods to detect
+EIH subjects.
 
 ```{r Results, echo=FALSE, results='asis'}
 for (my_env in my_envs) {
@@ -163,10 +146,6 @@ The following parameters were used as input to create this report:
 ```{r Infos}
 params %>% do.call(what = rbind, args = .) %>% my_table()
 ```
-
-# References
-
-<div id="refs"></div>
 
 ```{r End_tasks, include=FALSE}
 result_save()
