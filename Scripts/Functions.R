@@ -14,10 +14,10 @@ summary_gen <- function() {
     project_import(project_path = easycsv::choose_dir())
 
   summary <- imported_data$data %>%
-    common_col() %>% # Keeping only common columns
-    lapply(\(x) {
-      dplyr::filter(.data = x, performance::check_outliers(x = x) == F)
-    })
+    common_col() #%>% # Keeping only common columns
+    # lapply(\(x) {
+    #   dplyr::filter(.data = x, performance::check_outliers(x = x) == F)
+    # })
 
   summary <-
     my_summary(summary, summary, infos_df = imported_data$infos)# %>%
@@ -87,6 +87,7 @@ project_import <- function(project_path) {
         simplify = FALSE,
         USE.NAMES = TRUE
       ) %>%
+      # lapply(na.omit) %>%
       lapply(X = .,
              whippr::incremental_normalize,
              has_baseline = FALSE) %>%
@@ -100,7 +101,7 @@ project_import <- function(project_path) {
       lapply(dplyr::filter, outlier == "no") %>%
       lapply(
         dplyr::select,
-        !c(
+        -any_of(c(
           "protocol_phase",
           "x",
           "y",
@@ -108,7 +109,7 @@ project_import <- function(project_path) {
           "upr_pred",
           "outlier",
           "t"
-        )
+        ))
       ) %>%
       common_col() %>%
       lapply(janitor::clean_names, sep_out = "") %>%
@@ -120,7 +121,7 @@ project_import <- function(project_path) {
 
     imported_data <- append(x = imported_data, values = my_list)
     imported_data_infos <-
-      rbind(x = imported_data_infos, values = data_infos)
+      rbind(x = imported_data_infos, values = data_infos, fill = TRUE)
   }
   names(imported_data) <- # Renaming objects
     gsub(
@@ -145,8 +146,8 @@ common_col <- function(df_list) {
     output_col <-
       stringi::stri_replace_all_regex(
         str = input_col,
-        pattern = c("Rf|rf|fr|Fr|FR|f_r", "Hr|hr|FC|fc|Fc|f_c"),
-        replacement = c("RF", "HR"),
+        pattern = c("Rf|rf|fr|Fr|FR|f_r|F.R.", "Hr|hr|FC|fc|Fc|f_c|F.C.", "TaVE(BTPS)"),
+        replacement = c("RF", "HR", "VE"),
         vectorize = FALSE
       )
     colnames(x = x) <- output_col
