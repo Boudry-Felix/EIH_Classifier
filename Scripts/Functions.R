@@ -105,17 +105,6 @@ hclust_plot <- function(clust_data) {
   grDevices::recordPlot()
 }
 
-## Boxplots ---------------------------------------------------------------
-boxplots_by_clust <- function(data_col, cluster_col) {
-  ggplot2::ggplot(plot_df, aes(x = !!sym(cluster_col), y = !!sym(paste(data_col)))) +
-    ggplot2::geom_boxplot(aes(
-      group = !!sym(cluster_col),
-      fill = as.factor(!!sym(cluster_col))
-    )) +
-    ggplot2::ggtitle(label = paste(data_col, "by cluster")) +
-    ggplot2::labs(fill = cluster_col)
-}
-
 ## GBM --------------------------------------------------------------------
 shap_plots <- function(model, test_data_pred) {
   shap_data <-

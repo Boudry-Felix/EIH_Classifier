@@ -98,36 +98,3 @@ kclust_coord <-
 
 hclust_bu_graph <- hclust_plot(clust_data = hclust_bu_data)
 hclust_td_graph <- hclust_plot(clust_data = hclust_td_data)
-
-### Boxplots --------------------------------------------------------------
-### Boxplots of analyzed data by cluster
-
-## Adding cluster group to data
-plot_df <-
-  do.call(
-    "cbind",
-    list(
-      cluster_data,
-      kclust = kclust_data$cluster,
-      hclust_td = hclust_bu_data$cluster,
-      hclust_bu = hclust_td_data$cluster
-    ),
-    envir = .GlobalEnv
-  )
-
-cluster_columns <-
-  # Select cluster columns
-  colnames(x = .GlobalEnv$plot_df[grepl(pattern = "clust", x = colnames(.GlobalEnv$plot_df))])
-
-# Plotting boxplots for each variable in each cluster
-cluster_boxplots <- lapply(
-  X = cluster_columns,
-  FUN = \(my_col)
-  sapply(
-    X = colnames(.GlobalEnv$plot_df),
-    FUN = boxplots_by_clust,
-    cluster_col = my_col,
-    simplify = FALSE,
-    USE.NAMES = TRUE
-  )
-) %>% `names<-`(value = cluster_columns)

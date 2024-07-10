@@ -84,7 +84,8 @@ xgboost_rounds <- 45
 ```{r Import & scripts, include=FALSE}
 # Import selected data set creating imported_data_names and imported_data
 imported_data <-
-  fread(input = params$data, na.strings = c("NA", "na", "", "Inf", "-Inf"))
+  fread(input = params$data,
+        na.strings = c("NA", "na", "", "Inf", "-Inf"))
 
 # Source scripts for analysis
 dir_create(path = paste0("Models/"))
@@ -199,11 +200,7 @@ lgbm_shap_plot %>%
 feature_data <- imported_data %>%
   as.data.frame() %>%
   select(c(
-    gsub(
-      "\\.",
-      "/",
-      lgbm_shap_plot$importance_plot$data$feature
-    ),
+    gsub("\\.", "/", lgbm_shap_plot$importance_plot$data$feature),
     predict_label
   ))
 
@@ -250,11 +247,7 @@ xgboost_shap_plot %>%
 feature_data <- imported_data %>%
   as.data.frame() %>%
   select(c(
-    gsub(
-      "\\.",
-      "/",
-      xgboost_shap_plot$importance_plot$data$feature
-    ),
+    gsub("\\.", "/", xgboost_shap_plot$importance_plot$data$feature),
     predict_label
   ))
 
@@ -359,11 +352,7 @@ result_list <-
   )
 
 do.call(rbind, result_list) %>%
-  `colnames<-`(c("Accuracy",
-                 "Kappa",
-                 "F1",
-                 "Precision",
-                 "Recall")) %>%
+  `colnames<-`(c("Accuracy", "Kappa", "F1", "Precision", "Recall")) %>%
   `rownames<-`(c("LGBM", "XGBoost", "NODE", "GANDALF", "DANET")) %>%
   my_table()
 ```
