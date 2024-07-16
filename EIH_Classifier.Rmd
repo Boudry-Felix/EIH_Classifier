@@ -76,9 +76,9 @@ predict_label <-
 cluster_number <- 2
 cluster_number_names <- "two"
 ml_split <- 0.8
-optuna_trials <- 25
-lgbm_rounds <- 45
-xgboost_rounds <- 45
+optuna_trials <- 25000
+lgbm_rounds <- 100
+xgboost_rounds <- 100
 ```
 
 ```{r Import & scripts, include=FALSE}
