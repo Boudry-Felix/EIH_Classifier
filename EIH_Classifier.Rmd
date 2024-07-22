@@ -12,17 +12,21 @@ output:
     fig_caption: yes
     keep_md: yes
 params:
-  new_models:
-    label: "Compute new models?"
-    value: true
   seed:
     label: "Seed:"
     value: 42
     input: numeric
+  new_models:
+    label: "Compute new models?"
+    value: true
   data:
     label: "Input dataset:"
     value: "./Data/summary.csv"
     input: file
+  out_name:
+    label: "Output folder name:"
+    value: none
+    input: text
   predict_label:
     label: "Feature to predict:"
     value: c("eih")
@@ -61,10 +65,15 @@ library(psych)
 library(fs)
 library(tools)
 library(CatEncoders)
+library(easycsv)
 
 # Create a folder to save results
-analysis_date <- format(Sys.time(), "%Y-%m-%d_%H.%M.%S")
-dir_create(path = paste0("Output/", analysis_date))
+if (params$out_name == "none") {
+  out_name <- format(Sys.time(), "%Y-%m-%d_%H.%M.%S")
+} else {
+  out_name <- params$out_name
+}
+dir_create(path = paste0("Output/", out_name))
 
 ## Parsing and evaluating strings used as parameters to be used as code
 excluded_variables <-
@@ -72,13 +81,17 @@ excluded_variables <-
 predict_label <-
   eval_knit_param(params$predict_label)
 
+if (params$new_models == FALSE) {
+  model_path <- choose_dir()
+}
+
 ## Manual parameters for the analysis
 cluster_number <- 2
 cluster_number_names <- "two"
 ml_split <- 0.8
 optuna_trials <- 25000
-lgbm_rounds <- 100
-xgboost_rounds <- 100
+lgbm_rounds <- 80
+xgboost_rounds <- 80
 ```
 
 ```{r Import & scripts, include=FALSE}
@@ -102,6 +115,14 @@ names(convert_dic) <-
   no_num_colnames # Naming encoding list elements
 source("./Scripts/Unsupervised.R")
 source("./Scripts/Supervised.R")
+```
+
+# Knitting parameters
+
+The following parameters were used as input to create this report:
+
+```{r Infos}
+params %>% do.call(what = rbind, args = .) %>% my_table()
 ```
 
 # EIH prediction
@@ -357,14 +378,8 @@ do.call(rbind, result_list) %>%
   my_table()
 ```
 
-# Knitting parameters
-
-The following parameters were used as input to create this report:
-
-```{r Infos}
-params %>% do.call(what = rbind, args = .) %>% my_table()
-```
-
 ```{r End_tasks, include=FALSE}
-result_save()
+fs::dir_copy(path = "Models",
+             new_path = paste0("Output/", out_name, "/Models"))
+save.image(file = paste0("./Output/", out_name, "/global.RData"))
 ```

@@ -40,8 +40,8 @@ Output
 *.txt
 *.csv
 *.ckpt
-EIH_Modeling_Classification_files
-EIH_Modeling_Classification.md
+EIH_Classifier_files
+EIH_Classifier.md
 *_models
 *tmp*
 *log*

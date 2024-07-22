@@ -20,42 +20,36 @@ train, val = train_test_split(pd.DataFrame(r.dl_train),
                               random_state = int(r.project_seed))
 
 # LightGBM
-model_path = "Models/" + "/LGBM.txt"
+model_path = r.model_path + "/LGBM.txt"
 lgbm_model = lgb.Booster(model_file=model_path)
 # lgbm_params = lgbm_model.get_params()
 lgbm_pred_y = lgbm_model.predict(test_x)
 lgbm_pred_y = np.round(lgbm_pred_y)
 
 # XGBoost
-model_path = "Models/" + "/XGBoost.json"
+model_path = r.model_path + "/XGBoost.json"
 xgboost_model = xgb.XGBClassifier()
 xgboost_model.load_model(fname=model_path)
 # xgboost_params = xgboost_model.get_params()
 xgboost_pred_y = xgboost_model.predict(test_x)
 feature_names = xgboost_model.get_booster().feature_names
 
-# Dense
-model_path = "Models/" + "/Dense"
-dense_model = keras.models.load_model(model_path)
-dense_pred = dense_model.predict(test_x)
-dense_pred_y = np.rint(dense_pred)
-
 # NODE
-model_path = "Models/" + "/NODE"
+model_path = r.model_path + "/NODE"
 node_model = TabularModel.load_model(model_path)
 
 node_pred = node_model.predict(test_x)
 node_pred_y = node_pred['prediction']
 
 # GANDALF
-model_path = "Models/" + "/GANDALF"
+model_path = r.model_path + "/GANDALF"
 gandalf_model = TabularModel.load_model(model_path)
 
 gandalf_pred = gandalf_model.predict(test_x)
 gandalf_pred_y = gandalf_pred['prediction']
 
 # DANET
-model_path = "Models/" + "/DANET"
+model_path = r.model_path + "/DANET"
 danet_model = TabularModel.load_model(model_path)
 
 danet_pred = danet_model.predict(test_x)
